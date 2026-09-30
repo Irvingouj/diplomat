@@ -94,3 +94,35 @@ fn an_owned_byte_payload_survives_the_round_trip() {
     let converted: Result<(), Box<[u8]>> = shipped.into();
     assert_eq!(converted.expect_err("the err arm is live").len(), 2);
 }
+
+/// The same guarantee on the runtime's own conversion, which this crate links and the
+/// generated crate must not. Both definitions have to hold: a provider that hands a
+/// payload over through `DiplomatResult` is freed once on either side of the boundary,
+/// and the runtime's conversion is the one every other Rust consumer of the ABI gets.
+#[test]
+fn the_runtimes_conversion_drops_its_payload_once() {
+    use diplomat_runtime::DiplomatResult as RuntimeResult;
+
+    let drops = Rc::new(Cell::new(0));
+    let shipped = RuntimeResult::<Counted, ()>::from(Ok(Counted(drops.clone())));
+    let converted: Result<Counted, ()> = shipped.into();
+    assert_eq!(
+        drops.get(),
+        0,
+        "the runtime's conversion must hand the payload over, not drop it"
+    );
+    drop(converted);
+    assert_eq!(drops.get(), 1);
+
+    let drops = Rc::new(Cell::new(0));
+    let shipped = RuntimeResult::<(), Counted>::from(Err(Counted(drops.clone())));
+    let converted: Result<(), Counted> = shipped.into();
+    drop(converted);
+    assert_eq!(drops.get(), 1);
+
+    let drops = Rc::new(Cell::new(0));
+    let shipped = RuntimeResult::<Counted, ()>::from(Ok(Counted(drops.clone())));
+    let converted: Option<Counted> = shipped.into();
+    drop(converted);
+    assert_eq!(drops.get(), 1);
+}

@@ -11,4 +11,6 @@
 //!   data actually lands in a value built by the runtime's own constructors.
 //! - `tests/drop_semantics.rs` pins the conversions that move a payload out of the
 //!   ABI container, the place where a transcription that "just works" for integers
-//!   can still free an allocation twice.
+//!   can still free an allocation twice. It covers both sides: the transcription's
+//!   conversion, and the runtime's, which this crate links and no other crate in the
+//!   fixture may.
