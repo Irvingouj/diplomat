@@ -2,7 +2,7 @@
 //! public rendering, and the expressions that convert between them.
 
 use diplomat_core::hir::{
-    self, MaybeOwn, MaybeStatic, Mutability, OutType, PrimitiveType, ReturnType,
+    self, IntType, MaybeOwn, MaybeStatic, Mutability, OutType, PrimitiveType, ReturnType,
     ReturnableStructPath, SelfType, Slice, StringEncoding, StructPathLike, SuccessType, Type,
     TypeContext, TypeDef,
 };
@@ -63,9 +63,25 @@ pub(super) fn is_supported_slice<P: hir::TyPosition>(slice: &Slice<P>, tcx: &Typ
 }
 
 /// An owned primitive slice (`Box<[T]>`) returned by the provider.
+///
+/// Only bytes. `DiplomatBoxU8` is the consumer-side owner of a provider allocation, and
+/// it is written for `u8`: a `*mut u8` and `diplomat_owned_slice_u8_destroy`. A bridge
+/// spells bytes `u8` or `DiplomatByte`, which HIR keeps apart (`Int(U8)` and `Byte`), so
+/// both are accepted and nothing else is.
+///
+/// HIR refuses every other element type before a backend runs ("Owned slices cannot be
+/// returned, except for top-level method-return `Box<[u8]>`"), so this is a second gate
+/// on the same door: were that one to widen, this backend has to refuse the shape rather
+/// than feed `DiplomatOwnedSlice<u16>` to `DiplomatBoxU8::from_abi` and emit a crate that
+/// does not compile.
 pub(super) fn is_owned_slice<P: hir::TyPosition>(slice: &Slice<P>) -> bool {
-    matches!(slice, Slice::Primitive(MaybeOwn::Own, primitive)
-        if !matches!(primitive, PrimitiveType::Char) && primitive_name(*primitive).is_some())
+    matches!(
+        slice,
+        Slice::Primitive(
+            MaybeOwn::Own,
+            PrimitiveType::Byte | PrimitiveType::Int(IntType::U8)
+        )
+    )
 }
 
 /// The lifetime carried by a borrowed slice, if any.

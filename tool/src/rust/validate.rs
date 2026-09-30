@@ -5,8 +5,8 @@ use std::cell::Cell;
 use std::collections::HashSet;
 
 use diplomat_core::hir::{
-    self, OutType, ReturnType, ReturnableStructPath, StructPathLike, SuccessType, Type,
-    TypeContext, TypeDef,
+    self, IntType, MaybeOwn, OutType, PrimitiveType, ReturnType, ReturnableStructPath, Slice,
+    StructPathLike, SuccessType, Type, TypeContext, TypeDef,
 };
 
 use super::formatter::{
@@ -258,8 +258,16 @@ pub(super) fn validate_methods<'tcx>(
             _ => None,
         };
         // A `Result`'s error payload has a more specific diagnostic than the blanket one,
-        // so it is reported in its place rather than alongside it.
+        // so it is reported in its place rather than alongside it. An owned slice that is
+        // not bytes gets its own diagnostic too: the shape is representable in HIR, the
+        // consumer-side owner is not, and "unsupported return type" would not say which
+        // spelling works.
+        let owned_slice = unsupported_owned_slice_element(&method.output);
         let output_problem = match &method.output {
+            _ if owned_slice.is_some() => Some(format!(
+                "an owned slice must be `Box<[u8]>`; `Box<[{}]>` has no consumer-side owner",
+                owned_slice.expect("checked above")
+            )),
             ReturnType::Fallible(success, err) if is_success_type(success, tcx) => {
                 check_fallible_error(err, tcx).err()
             }
@@ -321,6 +329,31 @@ pub(super) fn validate_methods<'tcx>(
             }
         }
     }
+}
+
+/// The element type of an owned slice this backend cannot carry, if the output names one.
+///
+/// `DiplomatBoxU8` is the only consumer-side owner of a provider allocation, and it is
+/// bytes: `Box<[u8]>` or its `DiplomatByte` spelling, anywhere HIR allows an owned slice
+/// (a plain return, or the payload of a `Result`/`Option`).
+fn unsupported_owned_slice_element(ret: &ReturnType) -> Option<String> {
+    fn element(ty: &OutType) -> Option<String> {
+        match ty {
+            Type::Slice(Slice::Primitive(MaybeOwn::Own, primitive)) => match primitive {
+                PrimitiveType::Byte | PrimitiveType::Int(IntType::U8) => None,
+                other => Some(primitive_name(*other).unwrap_or("?").to_string()),
+            },
+            _ => None,
+        }
+    }
+
+    let mut found = None;
+    ret.with_contained_types(|ty| {
+        if found.is_none() {
+            found = element(ty);
+        }
+    });
+    found
 }
 
 /// The declared name of a type the provider disabled for this backend with
