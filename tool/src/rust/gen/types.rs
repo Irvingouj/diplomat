@@ -14,7 +14,7 @@ use crate::r#rust::lifetimes::{struct_generics, struct_lifetime_phantom};
 use crate::r#rust::type_map::{safe_struct_field_type, safe_value_type, struct_needs_abi_mirror};
 use askama::Template;
 use diplomat_core::hir::{
-    self, DocsUrlGenerator, Slice, StructPathLike, Type, TypeContext, TypeDef,
+    self, DocsUrlGenerator, MaybeOwn, Mutability, Slice, StructPathLike, Type, TypeContext, TypeDef,
 };
 
 #[derive(Template)]
@@ -46,7 +46,7 @@ struct StructTemplate {
     generics: String,
     args: String,
     needs_abi_mirror: bool,
-    derives_eq: bool,
+    derives: String,
     fields: Vec<FieldView>,
     phantom: String,
     methods: Vec<String>,
@@ -168,7 +168,7 @@ fn render_struct(
         generics,
         args,
         needs_abi_mirror: struct_needs_abi_mirror(strct, tcx),
-        derives_eq: derives_eq(strct, tcx),
+        derives: derives(strct, tcx),
         fields,
         phantom,
         methods,
@@ -177,43 +177,148 @@ fn render_struct(
     .expect("Rust struct template rendering cannot fail")
 }
 
-/// A struct can only derive `Eq` when every field is `Eq`, including fields
-/// nested inside other structs and `Option`. A float is not `Eq`, and neither
-/// is `Option<f64>` or a struct that contains one.
-fn derives_eq(strct: &hir::StructDef, tcx: &TypeContext) -> bool {
-    fn type_is_eq<P: hir::TyPosition>(
-        ty: &Type<P>,
-        tcx: &TypeContext,
-        stack: &mut Vec<String>,
-    ) -> bool {
-        match ty {
-            Type::Primitive(hir::PrimitiveType::Float(_)) => false,
-            Type::Primitive(_) | Type::Enum(_) => true,
-            Type::DiplomatOption(inner) => type_is_eq(inner.as_ref(), tcx, stack),
-            Type::Struct(path) => match tcx.resolve_type(path.id()) {
-                TypeDef::Struct(inner) => {
-                    let name = type_def_name(TypeDef::Struct(inner));
-                    if stack.iter().any(|seen| seen == &name) {
-                        return true;
-                    }
-                    stack.push(name);
-                    let ok = inner
-                        .fields
-                        .iter()
-                        .all(|field| type_is_eq(&field.ty, tcx, stack));
-                    stack.pop();
-                    ok
-                }
-                _ => false,
-            },
-            _ => true,
+/// Which of the derived traits a generated value struct can carry.
+///
+/// The template derives from the field types, and the field rules accept shapes for
+/// which some of them do not hold: a borrowed *mutable* slice (`DiplomatSliceMut` in the
+/// bridge, `&mut [T]` in the public API) is `PartialEq` and `Eq` but neither `Clone` nor
+/// `Copy`, and a float — on its own, inside `Option`, or as a slice element — is not
+/// `Eq`. Deriving them anyway produced a struct rustc rejects:
+///
+/// ```text
+/// error[E0204]: the trait `Copy` cannot be implemented for this type
+/// error[E0277]: the trait bound `f64: Eq` is not satisfied
+/// ```
+#[derive(Clone, Copy)]
+struct FieldTraits {
+    copy: bool,
+    clone: bool,
+    eq: bool,
+}
+
+impl FieldTraits {
+    const ALL: Self = Self {
+        copy: true,
+        clone: true,
+        eq: true,
+    };
+
+    /// Every field has to carry the trait, so the struct's set is the intersection.
+    fn and(self, other: Self) -> Self {
+        Self {
+            copy: self.copy && other.copy,
+            clone: self.clone && other.clone,
+            eq: self.eq && other.eq,
         }
     }
+}
+
+/// The derive list for a value struct, in the template's order.
+fn derives(strct: &hir::StructDef, tcx: &TypeContext) -> String {
+    let traits = struct_traits(strct, tcx);
+    let mut list = Vec::new();
+    if traits.clone {
+        list.push("Clone");
+    }
+    if traits.copy {
+        list.push("Copy");
+    }
+    // `Debug` and `PartialEq` hold for every field shape the validator admits.
+    list.push("Debug");
+    list.push("PartialEq");
+    if traits.eq {
+        list.push("Eq");
+    }
+    list.join(", ")
+}
+
+fn struct_traits(strct: &hir::StructDef, tcx: &TypeContext) -> FieldTraits {
     let mut stack = vec![type_def_name(TypeDef::Struct(strct))];
-    strct
-        .fields
-        .iter()
-        .all(|field| type_is_eq(&field.ty, tcx, &mut stack))
+    strct.fields.iter().fold(FieldTraits::ALL, |traits, field| {
+        traits.and(field_traits(&field.ty, tcx, &mut stack))
+    })
+}
+
+fn field_traits<P: hir::TyPosition>(
+    ty: &Type<P>,
+    tcx: &TypeContext,
+    stack: &mut Vec<String>,
+) -> FieldTraits {
+    match ty {
+        // A float is not `Eq`. Everything else a primitive can be.
+        Type::Primitive(hir::PrimitiveType::Float(_)) => FieldTraits {
+            eq: false,
+            ..FieldTraits::ALL
+        },
+        Type::Primitive(_) | Type::Enum(_) => FieldTraits::ALL,
+        Type::DiplomatOption(inner) => field_traits(inner.as_ref(), tcx, stack),
+        Type::Struct(path) => match tcx.resolve_type(path.id()) {
+            TypeDef::Struct(inner) => {
+                let name = type_def_name(TypeDef::Struct(inner));
+                // A struct that contains itself cannot be built, so a repeated name is
+                // a shape the validator should have refused; treat it as unconstrained
+                // rather than recursing forever.
+                if stack.iter().any(|seen| seen == &name) {
+                    return FieldTraits::ALL;
+                }
+                stack.push(name);
+                let traits = struct_traits(inner, tcx);
+                stack.pop();
+                traits
+            }
+            _ => FieldTraits::ALL,
+        },
+        Type::Slice(slice) => {
+            // A borrow is `Clone`/`Copy` unless it is exclusive; an element type only
+            // matters for `Eq`, and only floats are excluded there.
+            let shared = !matches!(slice, hir::Slice::Primitive(MaybeOwn::Borrow(borrow), _)
+                if borrow.mutability == Mutability::Mutable);
+            FieldTraits {
+                copy: shared,
+                clone: shared,
+                ..slice_element_traits(slice, tcx, stack)
+            }
+        }
+        // Validation admits no other field shape; do not claim traits for one.
+        _ => FieldTraits {
+            copy: false,
+            clone: false,
+            eq: false,
+        },
+    }
+}
+
+/// A slice is `Eq` when its element type is.
+fn slice_element_traits<P: hir::TyPosition>(
+    slice: &hir::Slice<P>,
+    tcx: &TypeContext,
+    stack: &mut Vec<String>,
+) -> FieldTraits {
+    match slice {
+        hir::Slice::Primitive(_, primitive) => match primitive {
+            hir::PrimitiveType::Float(_) => FieldTraits {
+                eq: false,
+                ..FieldTraits::ALL
+            },
+            _ => FieldTraits::ALL,
+        },
+        // `&str`/`&[u16]`-style string slices carry code units, which are `Eq`.
+        hir::Slice::Str(_, _) | hir::Slice::Strs(_) => FieldTraits::ALL,
+        hir::Slice::Struct(_, path) => field_traits(&Type::<P>::Struct(path.clone()), tcx, stack),
+        // Validation admits no opaque slice as a field; do not claim traits for one.
+        hir::Slice::Opaque(_, _) => FieldTraits {
+            copy: false,
+            clone: false,
+            eq: false,
+        },
+        // `Slice` is `#[non_exhaustive]`: a variant this backend has never seen gets no
+        // claim at all, rather than a derive rustc would have to reject.
+        _ => FieldTraits {
+            copy: false,
+            clone: false,
+            eq: false,
+        },
+    }
 }
 
 fn referenced_names_for_struct(

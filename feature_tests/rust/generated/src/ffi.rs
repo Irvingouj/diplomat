@@ -193,6 +193,16 @@ pub struct BorrowedFieldsReturning<'a> {
 }
 
 #[repr(C)]
+pub struct FloatSliceView<'a> {
+    pub(super) values: DiplomatSlice<'a, f64>,
+}
+
+#[repr(C)]
+pub struct MutableBorrowedBytes<'a> {
+    pub(super) bytes: DiplomatSliceMut<'a, u8>,
+}
+
+#[repr(C)]
 pub struct BorrowingOptionStruct<'a> {
     pub(super) a: DiplomatOption<DiplomatSlice<'a, u8>>,
 }
@@ -531,6 +541,13 @@ extern "C" {
     pub(super) fn namespace_StructWithAttrs_deprecated(this: super::RenamedStructWithAttrs);
     pub(super) fn BorrowedBytes_from_bytes<'a>(bytes: DiplomatSlice<u8>) -> BorrowedBytes<'a>;
     pub(super) fn BorrowedBytes_len(this: BorrowedBytes<'_>) -> usize;
+    pub(super) fn FloatSliceView_wrap<'a>(values: DiplomatSlice<f64>) -> FloatSliceView<'a>;
+    pub(super) fn FloatSliceView_first(this: FloatSliceView<'_>) -> f64;
+    pub(super) fn MutableBorrowedBytes_wrap<'a>(
+        bytes: DiplomatSliceMut<u8>,
+    ) -> MutableBorrowedBytes<'a>;
+    pub(super) fn MutableBorrowedBytes_write_first(this: MutableBorrowedBytes<'_>, value: u8)
+        -> u8;
     pub(super) fn ErrorStruct_returns_result_option(
         is_some: bool,
     ) -> DiplomatResult<DiplomatOption<super::ErrorStruct>, ()>;

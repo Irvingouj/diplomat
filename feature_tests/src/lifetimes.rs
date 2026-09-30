@@ -127,6 +127,45 @@ pub mod ffi {
             self.bytes.len()
         }
     }
+
+    /// A borrowed *mutable* slice field. `&mut [T]` is `PartialEq` and `Eq`, but it is
+    /// neither `Clone` nor `Copy`, so a struct holding one cannot derive those.
+    #[diplomat::attr(not(rust), disable)]
+    pub struct MutableBorrowedBytes<'a> {
+        pub bytes: DiplomatSliceMut<'a, u8>,
+    }
+
+    impl<'a> MutableBorrowedBytes<'a> {
+        pub fn wrap(bytes: DiplomatSliceMut<'a, u8>) -> Self {
+            MutableBorrowedBytes { bytes }
+        }
+
+        pub fn write_first(self, value: u8) -> u8 {
+            // The bridge's spelling of `&'a mut [u8]` writes through to the caller's
+            // buffer, not to a copy of it.
+            let mut bytes = self.bytes;
+            let previous = bytes[0];
+            bytes[0] = value;
+            previous
+        }
+    }
+
+    /// A slice of floats. `f64` is not `Eq`, so neither is `&[f64]`, and neither is a
+    /// struct that holds one even though every other derived trait holds.
+    #[diplomat::attr(not(rust), disable)]
+    pub struct FloatSliceView<'a> {
+        pub values: DiplomatSlice<'a, f64>,
+    }
+
+    impl<'a> FloatSliceView<'a> {
+        pub fn wrap(values: DiplomatSlice<'a, f64>) -> Self {
+            FloatSliceView { values }
+        }
+
+        pub fn first(self) -> f64 {
+            self.values[0]
+        }
+    }
     impl<'a> Foo<'a> {
         #[diplomat::attr(auto, constructor)]
         #[diplomat::attr(dotnet, disable)]

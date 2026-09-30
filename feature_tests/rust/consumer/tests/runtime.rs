@@ -9,10 +9,11 @@
 
 use diplomat_rust_backend_generated::{
     BigStructWithStuff, BorrowedBytes, ContiguousEnum, CyclicStructA, CyclicStructB, DefaultEnum,
-    ErrorEnum, Float64Vec, HolderFactory, HolderKind, MyEnum, MyOpaqueEnum, MyString, MyStruct,
-    MyStructContainingAnOption, NestedCharField, NestedConvertingFields, NestedOptionField, Opaque,
-    OpaqueMutexedString, OpaqueThinVec, OptionEnum, OptionInputStruct, OptionOpaque, OptionString,
-    OwnedSliceReturn, RenamedMixinTest, ResultOpaque, ScalarPairWithPadding, Utf16Wrap,
+    ErrorEnum, Float64Vec, FloatSliceView, HolderFactory, HolderKind, MutableBorrowedBytes, MyEnum,
+    MyOpaqueEnum, MyString, MyStruct, MyStructContainingAnOption, NestedCharField,
+    NestedConvertingFields, NestedOptionField, Opaque, OpaqueMutexedString, OpaqueThinVec,
+    OptionEnum, OptionInputStruct, OptionOpaque, OptionString, OwnedSliceReturn, RenamedMixinTest,
+    ResultOpaque, ScalarPairWithPadding, Utf16Wrap,
 };
 
 /// An owned opaque is constructed by the provider and dropped by the generated
@@ -416,4 +417,25 @@ fn a_lifetime_struct_is_measured_by_its_own_method() {
     let empty = [0u8; 0];
     let borrowed = BorrowedBytes::from_bytes(&empty);
     assert_eq!(borrowed.len(), 0);
+}
+
+/// A struct holding a borrowed mutable slice writes through to the caller's buffer. It
+/// is deliberately not `Copy`, and the write is visible after the wrapper is consumed.
+#[test]
+fn a_mutable_slice_field_writes_through_to_the_caller() {
+    let mut bytes = [1u8, 2, 3];
+    let borrowed = MutableBorrowedBytes::wrap(&mut bytes);
+    assert_eq!(borrowed.write_first(9), 1);
+    assert_eq!(bytes, [9, 2, 3]);
+}
+
+/// A struct holding a float slice is not `Eq`, but it does compare element-wise.
+#[test]
+fn a_float_slice_field_compares_by_value() {
+    let values = [1.5f64, 2.5];
+    let first = FloatSliceView::wrap(&values);
+    assert_eq!(first.first(), 1.5);
+
+    let second = FloatSliceView::wrap(&values);
+    assert_eq!(first, second);
 }
