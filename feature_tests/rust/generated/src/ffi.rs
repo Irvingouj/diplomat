@@ -585,6 +585,5 @@ extern "C" {
     pub(super) fn ScalarPairWithPadding_assert_value(this: super::ScalarPairWithPadding);
     pub(super) fn DefaultEnum_new() -> super::DefaultEnum;
     pub(super) fn HolderKind_make() -> *mut Opaque;
-    pub(super) fn MyEnum_into_value(this: super::MyEnum) -> i8;
     pub(super) fn MyEnum_get_a() -> super::MyEnum;
 }

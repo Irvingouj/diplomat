@@ -232,6 +232,12 @@ pub mod ffi {
     }
 
     impl MyEnum {
+        // HIR records an enum receiver as by-value whatever the source said, while the macro's
+        // ABI shim passes whatever the source said (`&mut self` becomes a pointer). The Rust
+        // backend cannot tell the two apart, so it refuses enum receivers rather than generate
+        // a call that reads a pointer as a value. Other backends keep the shape; the upstream
+        // fix is for HIR to keep the receiver's owner.
+        #[diplomat::attr(rust, disable)]
         pub fn into_value(self) -> i8 {
             self as i8
         }

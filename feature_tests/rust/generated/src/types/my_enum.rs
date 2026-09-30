@@ -12,10 +12,6 @@ pub enum MyEnum {
     F = 3,
 }
 impl MyEnum {
-    pub fn into_value(self) -> i8 {
-        // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
-        unsafe { ffi::MyEnum_into_value(self) }
-    }
     pub fn get_a() -> MyEnum {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         unsafe { ffi::MyEnum_get_a() }

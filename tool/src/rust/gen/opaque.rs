@@ -176,6 +176,10 @@ fn impl_generics(opaque: &hir::OpaqueDef, wrapper: Wrapper) -> (String, String) 
         .map(|method| &method.lifetime_env)
         .find(|env| env.num_lifetimes() >= type_lifetimes);
 
+    // A method environment lists the type's lifetimes in the order the provider's `impl`
+    // block declared them, which need not be the definition's order. Validation refuses that
+    // disagreement (`validate::validate_methods`), so the two orders agree by the time this
+    // runs and applying them positionally is sound.
     let (mut params, mut args) = match env {
         Some(env) => (
             env.all_lifetimes()

@@ -1268,6 +1268,66 @@ mod tests {
         );
     }
 
+    /// A method impl block applies its lifetimes to the type's parameters, and those are
+    /// ordered by the type definition. The renderer reads the impl's lifetimes from the method
+    /// environment, which lists them in the order the provider's `impl` block declared them:
+    /// `impl<'b, 'a> P<'a, 'b>` used to render `impl<'b, 'a> P<'b, 'a>`, so the type's first
+    /// parameter took the block's second lifetime and a method returning a borrow of the first
+    /// parameter's data handed the consumer the second parameter's lifetime — a borrow it may
+    /// hold for longer than the data lives. The backend refuses the disagreement.
+    #[test]
+    fn method_impl_lifetimes_must_follow_the_type_definition_order() {
+        let (files, errors) = generate(quote! {
+            #[diplomat::bridge]
+            mod ffi {
+                #[diplomat::opaque]
+                pub struct P<'a, 'b>(&'a [u8], &'b [u8]);
+                impl<'b, 'a> P<'a, 'b> {
+                    pub fn first(&self) -> &'a [u8] {
+                        self.0
+                    }
+                }
+            }
+        });
+        assert!(files.is_empty(), "no partial output: {:#?}", files.keys());
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("lifetimes") && error.contains("order")),
+            "{errors:#?}"
+        );
+    }
+
+    /// HIR normalises a reference receiver on an enum to a by-value `SelfType::Enum`, so the
+    /// reference-ness never reaches codegen: the generated consumer takes the enum by value
+    /// while the provider's ABI shim still passes the pointer the source declared. A safe
+    /// consumer then reads a pointer as a value, which is a segmentation fault. The backend
+    /// cannot see the difference, so it refuses enum receivers outright.
+    #[test]
+    fn enum_receiver_is_rejected() {
+        let (files, errors) = generate(quote! {
+            #[diplomat::bridge]
+            mod ffi {
+                pub enum E {
+                    A = 0,
+                    B = 1,
+                }
+                impl E {
+                    pub fn set_b(&mut self) {
+                        *self = E::B;
+                    }
+                }
+            }
+        });
+        assert!(files.is_empty(), "no partial output: {:#?}", files.keys());
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("enum") && error.contains("receiver")),
+            "{errors:#?}"
+        );
+    }
+
     /// The same, one layer in: the owned slice is the `Ok` payload of a `Result`, which
     /// is how a provider reports a failure while still transferring a buffer.
     #[test]

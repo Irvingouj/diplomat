@@ -121,12 +121,7 @@ pub(super) fn validate<'tcx>(tcx: &'tcx TypeContext, reporter: &Reporter<'_, 'tc
                         opaque.dtor_abi_name
                     ));
                 }
-                validate_methods(
-                    tcx,
-                    &opaque.methods,
-                    opaque.lifetimes.num_lifetimes(),
-                    reporter,
-                );
+                validate_methods(tcx, &opaque.methods, Some(&opaque.lifetimes), reporter);
             }
             TypeDef::Struct(strct) => {
                 let mut field_names = HashSet::new();
@@ -147,12 +142,7 @@ pub(super) fn validate<'tcx>(tcx: &'tcx TypeContext, reporter: &Reporter<'_, 'tc
                     }
                 }
                 if !strct.methods.is_empty() {
-                    validate_methods(
-                        tcx,
-                        &strct.methods,
-                        strct.lifetimes.num_lifetimes(),
-                        reporter,
-                    );
+                    validate_methods(tcx, &strct.methods, Some(&strct.lifetimes), reporter);
                 }
             }
             TypeDef::OutStruct(_) => {
@@ -172,7 +162,7 @@ pub(super) fn validate<'tcx>(tcx: &'tcx TypeContext, reporter: &Reporter<'_, 'tc
                     }
                 }
                 if !enm.methods.is_empty() {
-                    validate_methods(tcx, &enm.methods, 0, reporter);
+                    validate_methods(tcx, &enm.methods, None, reporter);
                 }
             }
             _ => reporter.reject("[Rust backend] unsupported type definition"),
@@ -200,9 +190,10 @@ pub(super) fn validate<'tcx>(tcx: &'tcx TypeContext, reporter: &Reporter<'_, 'tc
 pub(super) fn validate_methods<'tcx>(
     tcx: &'tcx TypeContext,
     methods: &'tcx [hir::Method],
-    type_lifetime_count: usize,
+    definition_lifetimes: Option<&'tcx hir::LifetimeEnv>,
     reporter: &Reporter<'_, 'tcx>,
 ) {
+    let type_lifetime_count = definition_lifetimes.map_or(0, hir::LifetimeEnv::num_lifetimes);
     let mut names = HashSet::new();
     for method in methods {
         if method.attrs.disable {
@@ -257,6 +248,61 @@ pub(super) fn validate_methods<'tcx>(
             }
             _ => None,
         };
+        // HIR records a reference receiver on an enum as a by-value `SelfType::Enum`, so the
+        // generated consumer takes the enum by value while the provider's ABI shim still passes
+        // the pointer the source declared. `SelfType::Enum` carries no owner, so the backend
+        // cannot tell the two apart and refuses enum receivers outright rather than emit a call
+        // that reads a pointer as a value.
+        if matches!(
+            method.param_self.as_ref().map(|param| &param.ty),
+            Some(hir::SelfType::Enum(_))
+        ) {
+            reporter.reject(
+                "[Rust backend] an enum receiver is not supported: HIR records it as by-value while the provider's ABI passes the reference the source declared",
+            );
+            continue;
+        }
+
+        // A method impl block applies its lifetimes to the type's parameters, and those are
+        // ordered by the type definition. The renderer reads the block's lifetimes from the
+        // method environment, which lists them in the order the block declared them, and applies
+        // them positionally: for `impl<'b, 'a> P<'a, 'b>` on a definition of `P<'a, 'b>` that
+        // rendered `impl<'b, 'a> P<'b, 'a>`, handing the type's first parameter the block's
+        // second lifetime. A method returning a borrow of the first parameter's data then gave
+        // the consumer the second parameter's lifetime, which it may hold for longer than the
+        // data lives.
+        //
+        // The block may legitimately *rename* the definition's lifetimes (`impl<'o> One<'o>`),
+        // so a name mismatch alone says nothing. What is never legitimate is declaring the same
+        // names in a different order, and that is what is refused here.
+        if let Some(definition) = definition_lifetimes {
+            let definition_order: Vec<String> = definition
+                .all_lifetimes()
+                .map(|lifetime| definition.fmt_lifetime(lifetime).into_owned())
+                .collect();
+            let mut declared_order: Vec<String> = method
+                .lifetime_env
+                .all_lifetimes()
+                .map(|lifetime| method.lifetime_env.fmt_lifetime(lifetime).into_owned())
+                .collect();
+            declared_order.truncate(definition_order.len());
+            let mut sorted_declared = declared_order.clone();
+            let mut sorted_definition = definition_order.clone();
+            sorted_declared.sort();
+            sorted_definition.sort();
+            if declared_order != definition_order && sorted_declared == sorted_definition {
+                reporter.reject(format!(
+                    "[Rust backend] the impl declares the type's lifetimes in a different order than the type does; declare them as <{}> so the generated impl applies them to the right parameters",
+                    definition_order
+                        .iter()
+                        .map(|name| format!("'{name}"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ));
+                continue;
+            }
+        }
+
         // A `Result`'s error payload has a more specific diagnostic than the blanket one,
         // so it is reported in its place rather than alongside it. An owned slice that is
         // not bytes gets its own diagnostic too: the shape is representable in HIR, the
