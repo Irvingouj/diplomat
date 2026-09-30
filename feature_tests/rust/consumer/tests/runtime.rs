@@ -179,15 +179,6 @@ fn owned_byte_slice_return_transfers_ownership() {
     assert_eq!(owned.as_ref(), &[0, 1, 2, 3, 4]);
     assert_eq!(&owned.clone_to_box()[..], &[0, 1, 2, 3, 4]);
     assert!(OwnedSliceReturn::make_bytes(0).is_empty());
-
-    let bytes = OwnedSliceReturn::try_make_bytes(3)
-        .expect("3 is non-zero")
-        .clone_to_box();
-    assert_eq!(&bytes[..], &[0, 1, 2]);
-    assert_eq!(
-        OwnedSliceReturn::try_make_bytes(0).unwrap_err(),
-        ErrorEnum::Foo
-    );
 }
 
 /// A caller copies the bytes into their own `Box`, drops the provider buffer,
@@ -210,11 +201,6 @@ fn cloned_bytes_outlive_the_provider_buffer() {
     let empty_copy = empty.clone_to_box();
     drop(empty);
     assert!(empty_copy.is_empty());
-
-    let checked = OwnedSliceReturn::try_make_bytes(3).expect("3 is non-zero");
-    let checked_copy = checked.clone_to_box();
-    drop(checked);
-    assert_eq!(&checked_copy[..], &[0, 1, 2]);
 }
 
 /// An opaque that borrows out of a caller-owned slice, and returns a borrowed

@@ -1209,6 +1209,30 @@ mod tests {
     }
 
     #[test]
+    fn owned_byte_slice_inside_result_is_rejected() {
+        let (files, errors) = generate(quote! {
+            #[diplomat::bridge]
+            mod ffi {
+                #[diplomat::opaque]
+                pub struct Holder;
+                impl Holder {
+                    pub fn try_make(len: u32) -> Result<Box<[u8]>, u32> {
+                        let _ = len;
+                        unimplemented!()
+                    }
+                }
+            }
+        });
+        assert!(files.is_empty(), "no partial output: {:#?}", files.keys());
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("owned byte slice")),
+            "{errors:#?}"
+        );
+    }
+
+    #[test]
     fn stored_input_lifetime_is_not_elided() {
         let (files, errors) = generate(quote! {
             #[diplomat::bridge]

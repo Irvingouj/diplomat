@@ -237,7 +237,9 @@ pub mod ffi {
         }
 
         /// Fallible variant of [`Self::make_bytes`]: errors on `len == 0`.
-        /// Exercises the `Result<Box<[u8]>, E>` bridge shape.
+        /// Exercises the `Result<Box<[u8]>, E>` bridge shape. The Rust backend
+        /// does not generate this: diplomat-runtime 0.16 drops that payload twice.
+        #[diplomat::attr(rust, disable)]
         pub fn try_make_bytes(len: u32) -> Result<Box<[u8]>, ErrorEnum> {
             if len == 0 {
                 return Err(ErrorEnum::Foo);
