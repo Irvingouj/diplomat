@@ -65,9 +65,11 @@ impl DiplomatBoxU8 {
 
 impl Drop for DiplomatBoxU8 {
     fn drop(&mut self) {
-        // SAFETY: `ptr`/`len` came from the provider, and this is the one free.
-        // The symbol is the provider cdylib's copy, so the free runs in the
-        // allocator that created the buffer.
+        // SAFETY: `ptr`/`len` came from the provider, and this is the one free. The symbol
+        // is declared as an import from the provider cdylib and this crate defines no copy
+        // of it, so the call reaches the provider's allocator. (What a *binary* links is
+        // the binary's business: one that links the runtime again would define the symbol
+        // itself.)
         unsafe { ffi::diplomat_owned_slice_u8_destroy(self.ptr, self.len) };
     }
 }

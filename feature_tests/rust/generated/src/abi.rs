@@ -11,8 +11,12 @@
 //! consumer's allocator, which the provider never agreed to.
 //!
 //! So the types the generated code names are transcribed here instead of imported.
-//! Fields stay private, nothing here is `#[no_mangle]`, and every function in
-//! `crate::ffi`'s `extern` block resolves in the provider cdylib and nowhere else.
+//! Fields stay private, nothing here is `#[no_mangle]`, and the crate defines none of the
+//! symbols it imports from the provider. Where a call actually binds is a property of the
+//! final link, not of this crate: a binary that also links the runtime once more would
+//! define these symbols itself, and the loader would use those. The fixture proves the
+//! intended direction for the crate this backend generates — the provider defines and the
+//! consumer imports — with `nm` and with a dynamic-loader trace.
 //! The Diplomat repository checks each transcription against the runtime's own
 //! definition — size, alignment and field offsets included — in
 //! `feature_tests/rust/abi`.
@@ -53,7 +57,9 @@ impl<'a, T> From<&'a [T]> for DiplomatSlice<'a, T> {
 
 impl<'a, T> From<DiplomatSlice<'a, T>> for &'a [T] {
     fn from(slice: DiplomatSlice<'a, T>) -> Self {
-        // An empty slice crosses as `NULL`, which is not a valid Rust pointer.
+        // An empty slice may cross as `NULL` — a C caller spells it that way — and that is
+        // not a valid Rust pointer. A Rust provider sends the dangling pointer of an empty
+        // slice instead, which `from_raw_parts` accepts.
         if slice.ptr.is_null() {
             debug_assert!(slice.len == 0);
             return &[];
@@ -83,7 +89,8 @@ impl<'a, T> From<&'a mut [T]> for DiplomatSliceMut<'a, T> {
 
 impl<'a, T> From<DiplomatSliceMut<'a, T>> for &'a mut [T] {
     fn from(slice: DiplomatSliceMut<'a, T>) -> Self {
-        // An empty slice crosses as `NULL`, which is not a valid Rust pointer.
+        // As above: `NULL` is how a C caller spells an empty slice, and it is not a valid
+        // Rust pointer.
         if slice.ptr.is_null() {
             debug_assert!(slice.len == 0);
             return &mut [];
@@ -271,8 +278,9 @@ impl Drop for WriteBuf {
 }
 
 /// Layout facts about the types above, for the repository's mirror-versus-runtime
-/// test (`feature_tests/rust/abi`). Offsets are only reachable from inside this
-/// crate, which is where they are spelled.
+/// test (`feature_tests/rust/abi`). The fields are private, so the offsets are spelled
+/// where they are reachable: inside this crate, as constants. The module is public so a
+/// test outside can compare them against the runtime; it exposes numbers, not fields.
 #[doc(hidden)]
 pub mod layout {
     use core::mem::{align_of, offset_of, size_of};
