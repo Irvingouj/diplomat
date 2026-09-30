@@ -126,3 +126,29 @@ fn the_runtimes_conversion_drops_its_payload_once() {
     drop(converted);
     assert_eq!(drops.get(), 1);
 }
+
+/// The same guarantee on `DiplomatOption::map`, which hands the payload to a closure and
+/// returns it in a new container. The container it came out of still runs its destructor,
+/// so without the same suppression the payload is freed while the new container holds it.
+#[test]
+fn the_runtimes_map_drops_its_payload_once() {
+    use diplomat_runtime::DiplomatOption as RuntimeOption;
+
+    let drops = Rc::new(Cell::new(0));
+    let shipped: RuntimeOption<Counted> = RuntimeOption::from(Some(Counted(drops.clone())));
+    // The closure returns its argument, so the payload has to survive the call.
+    let mapped: RuntimeOption<Counted> = shipped.map(|payload| payload);
+    assert_eq!(
+        drops.get(),
+        0,
+        "mapping must hand the payload on, not drop it"
+    );
+    drop(mapped);
+    assert_eq!(drops.get(), 1);
+
+    // `None` maps to `None` and drops nothing.
+    let empty: RuntimeOption<Counted> = RuntimeOption::from(None);
+    let mapped: RuntimeOption<Counted> = empty.map(|payload| payload);
+    assert!(mapped.into_option().is_none());
+    assert_eq!(drops.get(), 1);
+}

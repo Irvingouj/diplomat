@@ -48,13 +48,19 @@ impl<T> DiplomatOption<T> {
         self.into_option().map(Into::into)
     }
 
-    pub fn map<U, F>(mut self, f: F) -> DiplomatOption<U>
+    pub fn map<U, F>(self, f: F) -> DiplomatOption<U>
     where
         F: FnOnce(T) -> U,
     {
-        if self.is_ok {
+        // The payload is taken out bitwise below, which leaves the union field looking
+        // initialized, and the receiver's destructor would then take—and drop—it again.
+        // Suppress that destructor for the whole call, exactly as the conversions above
+        // do. Only one union field is ever live and it is the one being taken out, so
+        // nothing leaks.
+        let mut this = ManuallyDrop::new(self);
+        if this.is_ok {
             unsafe {
-                let res = f(ManuallyDrop::take(&mut self.value.ok));
+                let res = f(ManuallyDrop::take(&mut this.value.ok));
                 DiplomatResult {
                     value: DiplomatResultValue {
                         ok: ManuallyDrop::new(res),
@@ -66,7 +72,7 @@ impl<T> DiplomatOption<T> {
             unsafe {
                 DiplomatResult {
                     value: DiplomatResultValue {
-                        err: self.value.err,
+                        err: this.value.err,
                     },
                     is_ok: false,
                 }
@@ -183,6 +189,34 @@ mod tests {
     static OK_DROPS: AtomicUsize = AtomicUsize::new(0);
     static ERR_DROPS: AtomicUsize = AtomicUsize::new(0);
     static OPTION_DROPS: AtomicUsize = AtomicUsize::new(0);
+    static MAP_DROPS: AtomicUsize = AtomicUsize::new(0);
+
+    /// `map` takes the payload out of the union and hands it to the closure, which
+    /// returns the new payload. The container it was taken out of is a by-value receiver
+    /// that still runs its destructor, so the payload is dropped twice unless that
+    /// destructor is suppressed for the call — the same shape as the conversions above,
+    /// and the same double free.
+    #[test]
+    fn mapping_a_fulfilled_option_takes_the_payload_exactly_once() {
+        MAP_DROPS.store(0, Ordering::SeqCst);
+
+        let raw: DiplomatOption<Counted> = DiplomatOption::from(Some(Counted(&MAP_DROPS)));
+        // The closure returns its argument, so the payload has to survive the call in the
+        // new container rather than be dropped by it.
+        let mapped: DiplomatOption<Counted> = raw.map(|payload| payload);
+
+        assert_eq!(
+            MAP_DROPS.load(Ordering::SeqCst),
+            0,
+            "mapping must hand the payload on, not drop it"
+        );
+        drop(mapped);
+        assert_eq!(
+            MAP_DROPS.load(Ordering::SeqCst),
+            1,
+            "the payload must be dropped exactly once"
+        );
+    }
 
     #[test]
     fn converting_a_successful_result_takes_the_payload_exactly_once() {
