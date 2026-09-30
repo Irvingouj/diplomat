@@ -47,6 +47,42 @@ cargo fmt --manifest-path "$generated_dir/Cargo.toml"
 
 export CARGO_TARGET_DIR="$target_dir"
 
+echo "== prove a rejected shape reports a diagnostic, even with an inline bridge module =="
+# A bridge module declared inline in the entry file keeps the entry file's parent
+# *directory* as its span location, which is what makes a sibling `mod foo;` resolve to
+# `<dir>/foo.rs`. Rendering the diagnostic then reads a directory, and the report used to
+# panic there — swallowing the diagnostic for exactly the providers a backend refuses most.
+inline_dir="$target_dir/inline-provider"
+rm -rf "$inline_dir"
+mkdir -p "$inline_dir/src"
+cat >"$inline_dir/src/lib.rs" <<'RS'
+#[diplomat::bridge]
+pub mod ffi {
+    #[diplomat::opaque]
+    pub struct Holder;
+    impl Holder {
+        // An owned slice of anything but bytes: refused, with a diagnostic.
+        pub fn words() -> Box<[u16]> {
+            unimplemented!()
+        }
+    }
+}
+RS
+if cargo run --quiet --manifest-path "$repo_dir/Cargo.toml" -p diplomat-tool -- \
+    rust "$inline_dir/out" \
+    --entry "$inline_dir/src/lib.rs" \
+    --config-file "$corpus_dir/config.toml" \
+    >"$inline_dir/stdout.txt" 2>"$inline_dir/stderr.txt"; then
+    fail "a rejected shape generated successfully"
+fi
+grep -F "panicked" "$inline_dir/stderr.txt" >/dev/null \
+    && fail "a rejected shape panicked instead of reporting: $(head -c 400 "$inline_dir/stderr.txt")"
+grep -F 'Box<[u8]>' "$inline_dir/stderr.txt" >/dev/null \
+    || fail "the rejection did not reach the caller as a diagnostic: $(head -c 400 "$inline_dir/stderr.txt")"
+if find "$inline_dir/out" -name '*.rs' 2>/dev/null | grep . >/dev/null; then
+    fail "a rejected shape left generated files behind"
+fi
+
 echo "== build the provider: the shared corpus crate =="
 cargo build --manifest-path "$repo_dir/Cargo.toml" -p "$provider_pkg"
 
