@@ -102,11 +102,11 @@ impl Float64Vec {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Float64Vec_new(ffi::DiplomatSlice::from(v)) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Float64Vec");
             crate::Float64Vec {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -114,11 +114,11 @@ impl Float64Vec {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Float64Vec_new_bool(ffi::DiplomatSlice::from(v)) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Float64Vec");
             crate::Float64Vec {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -126,11 +126,11 @@ impl Float64Vec {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Float64Vec_new_i16(ffi::DiplomatSlice::from(v)) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Float64Vec");
             crate::Float64Vec {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -138,11 +138,11 @@ impl Float64Vec {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Float64Vec_new_u16(ffi::DiplomatSlice::from(v)) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Float64Vec");
             crate::Float64Vec {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -150,11 +150,11 @@ impl Float64Vec {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Float64Vec_new_isize(ffi::DiplomatSlice::from(v)) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Float64Vec");
             crate::Float64Vec {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -162,11 +162,11 @@ impl Float64Vec {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Float64Vec_new_usize(ffi::DiplomatSlice::from(v)) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Float64Vec");
             crate::Float64Vec {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -174,11 +174,11 @@ impl Float64Vec {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Float64Vec_new_f64_be_bytes(ffi::DiplomatSlice::from(v)) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Float64Vec");
             crate::Float64Vec {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }

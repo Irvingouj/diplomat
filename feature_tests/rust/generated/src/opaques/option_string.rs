@@ -101,9 +101,9 @@ impl OptionString {
     pub fn new(diplomat_str: &[u8]) -> Option<crate::OptionString> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OptionString_new(ffi::DiplomatSlice::from(diplomat_str)) };
-        NonNull::new(result as *mut _).map(|inner| crate::OptionString {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::OptionString {
             inner,
-            _not_send_sync: PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
     pub fn write(&self) -> Result<String, ()> {

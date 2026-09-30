@@ -337,7 +337,9 @@ pub(super) fn struct_output_expr(raw: &str, strct: &hir::StructDef, tcx: &TypeCo
         })
         .collect();
     if is_lifetime_struct(strct) {
-        fields.push("_lifetimes: PhantomData".to_string());
+        // Fully qualified for the same reason as every other expression here: this
+        // value can be built from a module that does not import `PhantomData`.
+        fields.push("_lifetimes: core::marker::PhantomData".to_string());
     }
     format!(
         "{name} {{ {fields} }}",

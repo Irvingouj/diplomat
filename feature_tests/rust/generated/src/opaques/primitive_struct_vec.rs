@@ -102,11 +102,11 @@ impl PrimitiveStructVec {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::PrimitiveStructVec_new() };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null PrimitiveStructVec");
             crate::PrimitiveStructVec {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }

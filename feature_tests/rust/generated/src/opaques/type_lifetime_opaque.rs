@@ -129,12 +129,12 @@ impl<'a> TypeLifetimeOpaque<'a> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::TypeLifetimeOpaque_new(ffi::DiplomatSlice::from(value)) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null TypeLifetimeOpaque");
             crate::TypeLifetimeOpaque {
                 inner,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }

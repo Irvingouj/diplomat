@@ -1240,6 +1240,56 @@ mod tests {
         );
     }
 
+    /// The consumer's owner for a provider-allocated buffer is written for bytes:
+    /// `DiplomatBoxU8` holds a `*mut u8` and frees it through
+    /// `diplomat_owned_slice_u8_destroy`. An owned slice of any other element type is
+    /// therefore a shape this backend cannot encode, and it must say so instead of
+    /// generating a crate that feeds `DiplomatOwnedSlice<u16>` to `from_abi` and fails
+    /// to compile.
+    #[test]
+    fn owned_slice_of_a_non_byte_primitive_is_rejected() {
+        let (files, errors) = generate(quote! {
+            #[diplomat::bridge]
+            mod ffi {
+                #[diplomat::opaque]
+                pub struct Holder;
+                impl Holder {
+                    pub fn words() -> Box<[u16]> {
+                        unimplemented!()
+                    }
+                }
+            }
+        });
+        assert!(files.is_empty(), "no partial output: {:#?}", files.keys());
+        assert!(
+            errors.iter().any(|error| error.contains("`Box<[u8]>`")),
+            "the diagnostic must name the shape that is supported: {errors:#?}"
+        );
+    }
+
+    /// The same, one layer in: the owned slice is the `Ok` payload of a `Result`, which
+    /// is how a provider reports a failure while still transferring a buffer.
+    #[test]
+    fn owned_slice_of_a_non_byte_primitive_inside_result_is_rejected() {
+        let (files, errors) = generate(quote! {
+            #[diplomat::bridge]
+            mod ffi {
+                #[diplomat::opaque]
+                pub struct Holder;
+                impl Holder {
+                    pub fn words() -> Result<Box<[f64]>, u32> {
+                        unimplemented!()
+                    }
+                }
+            }
+        });
+        assert!(files.is_empty(), "no partial output: {:#?}", files.keys());
+        assert!(
+            errors.iter().any(|error| error.contains("`Box<[u8]>`")),
+            "the diagnostic must name the shape that is supported: {errors:#?}"
+        );
+    }
+
     #[test]
     fn stored_input_lifetime_is_not_elided() {
         let (files, errors) = generate(quote! {

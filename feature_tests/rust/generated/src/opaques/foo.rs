@@ -118,12 +118,12 @@ impl<'a> Foo<'a> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Foo_new(ffi::DiplomatSlice::from(x)) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Foo");
             crate::Foo {
                 inner,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -131,12 +131,12 @@ impl<'a> Foo<'a> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Foo_get_bar(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Bar");
             crate::Bar {
                 inner,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -144,12 +144,12 @@ impl<'a> Foo<'a> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Foo_new_static(ffi::DiplomatSlice::from(x)) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Foo");
             crate::Foo {
                 inner,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -158,7 +158,7 @@ impl<'a> Foo<'a> {
         let result = unsafe { ffi::Foo_as_returning(self.inner.as_ptr() as *const _) };
         BorrowedFieldsReturning {
             bytes: result.bytes.into(),
-            _lifetimes: PhantomData,
+            _lifetimes: core::marker::PhantomData,
         }
     }
 }
@@ -168,12 +168,12 @@ impl<'view, 'a> FooRef<'view, 'a> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Foo_get_bar(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Bar");
             crate::Bar {
                 inner,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -182,7 +182,7 @@ impl<'view, 'a> FooRef<'view, 'a> {
         let result = unsafe { ffi::Foo_as_returning(self.inner.as_ptr() as *const _) };
         BorrowedFieldsReturning {
             bytes: result.bytes.into(),
-            _lifetimes: PhantomData,
+            _lifetimes: core::marker::PhantomData,
         }
     }
 }
@@ -192,12 +192,12 @@ impl<'view, 'a> FooRefMut<'view, 'a> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Foo_get_bar(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Bar");
             crate::Bar {
                 inner,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -206,7 +206,7 @@ impl<'view, 'a> FooRefMut<'view, 'a> {
         let result = unsafe { ffi::Foo_as_returning(self.inner.as_ptr() as *const _) };
         BorrowedFieldsReturning {
             bytes: result.bytes.into(),
-            _lifetimes: PhantomData,
+            _lifetimes: core::marker::PhantomData,
         }
     }
 }

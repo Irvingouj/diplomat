@@ -202,27 +202,30 @@ pub(super) fn opaque_return_expr(
     tcx: &TypeContext,
 ) -> String {
     let name = opaque_name(path.tcx_id, tcx);
+    // Every path here is fully qualified. This expression lands in whichever module
+    // declares the method, and a value type's module is not the opaque module: it
+    // imports its own value types and `crate::ffi`, nothing else.
     let phantom = if opaque_lifetime_names(tcx.resolve_opaque(path.tcx_id)).is_empty() {
         ""
     } else {
-        ", _lifetimes: PhantomData"
+        ", _lifetimes: core::marker::PhantomData"
     };
     let construct = if path.owner.is_owned() {
-        format!("crate::{name} {{ inner{phantom}, _not_send_sync: PhantomData }}")
+        format!("crate::{name} {{ inner{phantom}, _not_send_sync: core::marker::PhantomData }}")
     } else if path.owner.mutability() == Mutability::Mutable {
         format!(
-            "crate::{name}RefMut {{ inner, _borrow: PhantomData{phantom}, _not_send_sync: PhantomData }}"
+            "crate::{name}RefMut {{ inner, _borrow: core::marker::PhantomData{phantom}, _not_send_sync: core::marker::PhantomData }}"
         )
     } else {
         format!(
-            "crate::{name}Ref {{ inner, _borrow: PhantomData{phantom}, _not_send_sync: PhantomData }}"
+            "crate::{name}Ref {{ inner, _borrow: core::marker::PhantomData{phantom}, _not_send_sync: core::marker::PhantomData }}"
         )
     };
     if path.is_optional() {
-        format!("NonNull::new(result as *mut _).map(|inner| {construct})")
+        format!("core::ptr::NonNull::new(result as *mut _).map(|inner| {construct})")
     } else {
         format!(
-            "{{ let inner = NonNull::new(result as *mut _).expect(\"Diplomat ABI returned null for non-null {name}\"); {construct} }}"
+            "{{ let inner = core::ptr::NonNull::new(result as *mut _).expect(\"Diplomat ABI returned null for non-null {name}\"); {construct} }}"
         )
     }
 }

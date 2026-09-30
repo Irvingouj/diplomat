@@ -9,10 +9,10 @@
 
 use diplomat_rust_backend_generated::{
     BigStructWithStuff, ContiguousEnum, CyclicStructA, CyclicStructB, DefaultEnum, ErrorEnum,
-    Float64Vec, MyEnum, MyOpaqueEnum, MyString, MyStruct, MyStructContainingAnOption,
-    NestedCharField, NestedConvertingFields, NestedOptionField, Opaque, OpaqueMutexedString,
-    OpaqueThinVec, OptionEnum, OptionInputStruct, OptionOpaque, OptionString, OwnedSliceReturn,
-    RenamedMixinTest, ResultOpaque, ScalarPairWithPadding, Utf16Wrap,
+    Float64Vec, HolderFactory, HolderKind, MyEnum, MyOpaqueEnum, MyString, MyStruct,
+    MyStructContainingAnOption, NestedCharField, NestedConvertingFields, NestedOptionField, Opaque,
+    OpaqueMutexedString, OpaqueThinVec, OptionEnum, OptionInputStruct, OptionOpaque, OptionString,
+    OwnedSliceReturn, RenamedMixinTest, ResultOpaque, ScalarPairWithPadding, Utf16Wrap,
 };
 
 /// An owned opaque is constructed by the provider and dropped by the generated
@@ -387,4 +387,19 @@ fn opaque_debug_identifies_the_handle_without_leaking_private_fields() {
         format!("{:?}", ResultOpaque::new_failing_foo().unwrap_err()),
         "Foo"
     );
+}
+
+/// A value type's own method can hand out an opaque it owns. The handle comes back as
+/// an ordinary owned wrapper, so it is used and dropped like any other.
+#[test]
+fn a_value_type_can_hand_out_an_opaque() {
+    let factory = HolderFactory { tag: 3 };
+    assert_eq!(factory.tag, 3);
+
+    let made = HolderFactory::make();
+    assert_eq!(made.get_debug_str(), "\"\"");
+    drop(made);
+
+    assert_eq!(HolderKind::make().get_debug_str(), "\"\"");
+    assert_ne!(HolderKind::First, HolderKind::Second);
 }

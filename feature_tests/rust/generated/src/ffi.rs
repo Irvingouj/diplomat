@@ -547,6 +547,7 @@ extern "C" {
         c: super::CyclicStructC,
     ) -> super::CyclicStructC;
     pub(super) fn CyclicStructC_cyclic_out(this: super::CyclicStructC, write: *mut DiplomatWrite);
+    pub(super) fn HolderFactory_make() -> *mut Opaque;
     pub(super) fn MyStruct_new() -> MyStruct;
     pub(super) fn MyStruct_into_a(this: MyStruct) -> u8;
     pub(super) fn MyStruct_returns_zst_result() -> DiplomatResult<(), super::MyZst>;
@@ -559,6 +560,7 @@ extern "C" {
     ) -> NestedConvertingFields;
     pub(super) fn ScalarPairWithPadding_assert_value(this: super::ScalarPairWithPadding);
     pub(super) fn DefaultEnum_new() -> super::DefaultEnum;
+    pub(super) fn HolderKind_make() -> *mut Opaque;
     pub(super) fn MyEnum_into_value(this: super::MyEnum) -> i8;
     pub(super) fn MyEnum_get_a() -> super::MyEnum;
 }

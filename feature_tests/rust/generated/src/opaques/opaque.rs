@@ -102,31 +102,31 @@ impl Opaque {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Opaque_new() };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Opaque");
             crate::Opaque {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
     pub fn try_from_utf8(input: &[u8]) -> Option<crate::Opaque> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Opaque_try_from_utf8(ffi::DiplomatSlice::from(input)) };
-        NonNull::new(result as *mut _).map(|inner| crate::Opaque {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::Opaque {
             inner,
-            _not_send_sync: PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
     pub fn from_str(input: &str) -> crate::Opaque {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Opaque_from_str(ffi::DiplomatSlice::from(input.as_bytes())) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Opaque");
             crate::Opaque {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }

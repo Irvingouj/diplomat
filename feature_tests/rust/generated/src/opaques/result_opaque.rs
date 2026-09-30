@@ -105,11 +105,11 @@ impl ResultOpaque {
         let result = unsafe { ffi::ResultOpaque_new(i) };
         match Result::from(result) {
             Ok(result) => Ok({
-                let inner = NonNull::new(result as *mut _)
+                let inner = core::ptr::NonNull::new(result as *mut _)
                     .expect("Diplomat ABI returned null for non-null ResultOpaque");
                 crate::ResultOpaque {
                     inner,
-                    _not_send_sync: PhantomData,
+                    _not_send_sync: core::marker::PhantomData,
                 }
             }),
             Err(result) => Err(result),
@@ -120,11 +120,11 @@ impl ResultOpaque {
         let result = unsafe { ffi::ResultOpaque_new_failing_foo() };
         match Result::from(result) {
             Ok(result) => Ok({
-                let inner = NonNull::new(result as *mut _)
+                let inner = core::ptr::NonNull::new(result as *mut _)
                     .expect("Diplomat ABI returned null for non-null ResultOpaque");
                 crate::ResultOpaque {
                     inner,
-                    _not_send_sync: PhantomData,
+                    _not_send_sync: core::marker::PhantomData,
                 }
             }),
             Err(result) => Err(result),
@@ -135,11 +135,11 @@ impl ResultOpaque {
         let result = unsafe { ffi::ResultOpaque_new_failing_bar() };
         match Result::from(result) {
             Ok(result) => Ok({
-                let inner = NonNull::new(result as *mut _)
+                let inner = core::ptr::NonNull::new(result as *mut _)
                     .expect("Diplomat ABI returned null for non-null ResultOpaque");
                 crate::ResultOpaque {
                     inner,
-                    _not_send_sync: PhantomData,
+                    _not_send_sync: core::marker::PhantomData,
                 }
             }),
             Err(result) => Err(result),
@@ -150,11 +150,11 @@ impl ResultOpaque {
         let result = unsafe { ffi::ResultOpaque_new_failing_unit() };
         match Result::from(result) {
             Ok(result) => Ok({
-                let inner = NonNull::new(result as *mut _)
+                let inner = core::ptr::NonNull::new(result as *mut _)
                     .expect("Diplomat ABI returned null for non-null ResultOpaque");
                 crate::ResultOpaque {
                     inner,
-                    _not_send_sync: PhantomData,
+                    _not_send_sync: core::marker::PhantomData,
                 }
             }),
             Err(result) => Err(result),
@@ -166,11 +166,11 @@ impl ResultOpaque {
         match Result::from(result) {
             Ok(result) => Ok(result),
             Err(result) => Err({
-                let inner = NonNull::new(result as *mut _)
+                let inner = core::ptr::NonNull::new(result as *mut _)
                     .expect("Diplomat ABI returned null for non-null ResultOpaque");
                 crate::ResultOpaque {
                     inner,
-                    _not_send_sync: PhantomData,
+                    _not_send_sync: core::marker::PhantomData,
                 }
             }),
         }
@@ -209,11 +209,11 @@ impl ResultOpaque {
         match Result::from(result) {
             Ok(result) => Ok(result),
             Err(result) => Err({
-                let inner = NonNull::new(result as *mut _)
+                let inner = core::ptr::NonNull::new(result as *mut _)
                     .expect("Diplomat ABI returned null for non-null ResultOpaque");
                 crate::ResultOpaque {
                     inner,
-                    _not_send_sync: PhantomData,
+                    _not_send_sync: core::marker::PhantomData,
                 }
             }),
         }
@@ -229,12 +229,12 @@ impl ResultOpaque {
             )
         };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null ResultOpaque");
             crate::ResultOpaqueRefMut {
                 inner,
-                _borrow: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -263,12 +263,12 @@ impl<'view> ResultOpaqueRefMut<'view> {
             )
         };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null ResultOpaque");
             crate::ResultOpaqueRefMut {
                 inner,
-                _borrow: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }

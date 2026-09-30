@@ -119,10 +119,10 @@ impl<'a> OpaqueThinIter<'a> {
     pub fn next(&'a mut self) -> Option<crate::OpaqueThinRef<'a>> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinIter_next(self.inner.as_ptr()) };
-        NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
             inner,
-            _borrow: PhantomData,
-            _not_send_sync: PhantomData,
+            _borrow: core::marker::PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
 }
@@ -131,10 +131,10 @@ impl<'view, 'a> OpaqueThinIterRefMut<'view, 'a> {
     pub fn next(&'a mut self) -> Option<crate::OpaqueThinRef<'a>> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinIter_next(self.inner.as_ptr()) };
-        NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
             inner,
-            _borrow: PhantomData,
-            _not_send_sync: PhantomData,
+            _borrow: core::marker::PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
 }

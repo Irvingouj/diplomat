@@ -116,13 +116,13 @@ impl<'b, 'a: 'b> Bar<'b, 'a> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Bar_foo(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Foo");
             crate::FooRef {
                 inner,
-                _borrow: PhantomData,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -133,13 +133,13 @@ impl<'view, 'b, 'a: 'b> BarRef<'view, 'b, 'a> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Bar_foo(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Foo");
             crate::FooRef {
                 inner,
-                _borrow: PhantomData,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -150,13 +150,13 @@ impl<'view, 'b, 'a: 'b> BarRefMut<'view, 'b, 'a> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Bar_foo(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Foo");
             crate::FooRef {
                 inner,
-                _borrow: PhantomData,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }

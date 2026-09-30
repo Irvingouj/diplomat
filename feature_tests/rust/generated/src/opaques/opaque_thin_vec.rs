@@ -108,11 +108,11 @@ impl OpaqueThinVec {
             )
         };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueThinVec");
             crate::OpaqueThinVec {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -120,12 +120,12 @@ impl OpaqueThinVec {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinVec_iter(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueThinIter");
             crate::OpaqueThinIter {
                 inner,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -136,19 +136,19 @@ impl OpaqueThinVec {
     pub fn get<'a>(&'a self, idx: usize) -> Option<crate::OpaqueThinRef<'a>> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinVec_get(self.inner.as_ptr() as *const _, idx) };
-        NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
             inner,
-            _borrow: PhantomData,
-            _not_send_sync: PhantomData,
+            _borrow: core::marker::PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
     pub fn first<'a>(&'a self) -> Option<crate::OpaqueThinRef<'a>> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinVec_first(self.inner.as_ptr() as *const _) };
-        NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
             inner,
-            _borrow: PhantomData,
-            _not_send_sync: PhantomData,
+            _borrow: core::marker::PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
 }
@@ -158,12 +158,12 @@ impl<'view> OpaqueThinVecRef<'view> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinVec_iter(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueThinIter");
             crate::OpaqueThinIter {
                 inner,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -174,19 +174,19 @@ impl<'view> OpaqueThinVecRef<'view> {
     pub fn get<'a>(&'a self, idx: usize) -> Option<crate::OpaqueThinRef<'a>> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinVec_get(self.inner.as_ptr() as *const _, idx) };
-        NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
             inner,
-            _borrow: PhantomData,
-            _not_send_sync: PhantomData,
+            _borrow: core::marker::PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
     pub fn first<'a>(&'a self) -> Option<crate::OpaqueThinRef<'a>> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinVec_first(self.inner.as_ptr() as *const _) };
-        NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
             inner,
-            _borrow: PhantomData,
-            _not_send_sync: PhantomData,
+            _borrow: core::marker::PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
 }
@@ -196,12 +196,12 @@ impl<'view> OpaqueThinVecRefMut<'view> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinVec_iter(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueThinIter");
             crate::OpaqueThinIter {
                 inner,
-                _lifetimes: PhantomData,
-                _not_send_sync: PhantomData,
+                _lifetimes: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -212,19 +212,19 @@ impl<'view> OpaqueThinVecRefMut<'view> {
     pub fn get<'a>(&'a self, idx: usize) -> Option<crate::OpaqueThinRef<'a>> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinVec_get(self.inner.as_ptr() as *const _, idx) };
-        NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
             inner,
-            _borrow: PhantomData,
-            _not_send_sync: PhantomData,
+            _borrow: core::marker::PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
     pub fn first<'a>(&'a self) -> Option<crate::OpaqueThinRef<'a>> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueThinVec_first(self.inner.as_ptr() as *const _) };
-        NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::OpaqueThinRef {
             inner,
-            _borrow: PhantomData,
-            _not_send_sync: PhantomData,
+            _borrow: core::marker::PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
 }

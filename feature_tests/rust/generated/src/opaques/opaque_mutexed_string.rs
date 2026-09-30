@@ -102,11 +102,11 @@ impl OpaqueMutexedString {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueMutexedString_from_usize(number) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueMutexedString");
             crate::OpaqueMutexedString {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -118,12 +118,12 @@ impl OpaqueMutexedString {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueMutexedString_borrow(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueMutexedString");
             crate::OpaqueMutexedStringRef {
                 inner,
-                _borrow: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -137,12 +137,12 @@ impl OpaqueMutexedString {
             )
         };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueMutexedString");
             crate::OpaqueMutexedStringRef {
                 inner,
-                _borrow: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -158,12 +158,12 @@ impl OpaqueMutexedString {
             )
         };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueMutexedString");
             crate::OpaqueMutexedStringRef {
                 inner,
-                _borrow: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -180,11 +180,11 @@ impl OpaqueMutexedString {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueMutexedString_wrapper(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Utf16Wrap");
             crate::Utf16Wrap {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -208,12 +208,12 @@ impl<'view> OpaqueMutexedStringRef<'view> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueMutexedString_borrow(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueMutexedString");
             crate::OpaqueMutexedStringRef {
                 inner,
-                _borrow: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -229,12 +229,12 @@ impl<'view> OpaqueMutexedStringRef<'view> {
             )
         };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueMutexedString");
             crate::OpaqueMutexedStringRef {
                 inner,
-                _borrow: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -251,11 +251,11 @@ impl<'view> OpaqueMutexedStringRef<'view> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueMutexedString_wrapper(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Utf16Wrap");
             crate::Utf16Wrap {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -279,12 +279,12 @@ impl<'view> OpaqueMutexedStringRefMut<'view> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueMutexedString_borrow(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueMutexedString");
             crate::OpaqueMutexedStringRef {
                 inner,
-                _borrow: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -300,12 +300,12 @@ impl<'view> OpaqueMutexedStringRefMut<'view> {
             )
         };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null OpaqueMutexedString");
             crate::OpaqueMutexedStringRef {
                 inner,
-                _borrow: PhantomData,
-                _not_send_sync: PhantomData,
+                _borrow: core::marker::PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -322,11 +322,11 @@ impl<'view> OpaqueMutexedStringRefMut<'view> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OpaqueMutexedString_wrapper(self.inner.as_ptr() as *const _) };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null Utf16Wrap");
             crate::Utf16Wrap {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }

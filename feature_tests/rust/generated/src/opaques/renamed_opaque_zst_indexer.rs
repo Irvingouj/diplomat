@@ -111,11 +111,11 @@ impl RenamedOpaqueZSTIndexer {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::namespace_OpaqueZSTIndexer_new() };
         {
-            let inner = NonNull::new(result as *mut _)
+            let inner = core::ptr::NonNull::new(result as *mut _)
                 .expect("Diplomat ABI returned null for non-null RenamedOpaqueZSTIndexer");
             crate::RenamedOpaqueZSTIndexer {
                 inner,
-                _not_send_sync: PhantomData,
+                _not_send_sync: core::marker::PhantomData,
             }
         }
     }
@@ -123,9 +123,9 @@ impl RenamedOpaqueZSTIndexer {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result =
             unsafe { ffi::namespace_OpaqueZSTIndexer_index(self.inner.as_ptr() as *const _, idx) };
-        NonNull::new(result as *mut _).map(|inner| crate::RenamedOpaqueZSTIndexer {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::RenamedOpaqueZSTIndexer {
             inner,
-            _not_send_sync: PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
 }
@@ -135,9 +135,9 @@ impl<'view> RenamedOpaqueZSTIndexerRef<'view> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result =
             unsafe { ffi::namespace_OpaqueZSTIndexer_index(self.inner.as_ptr() as *const _, idx) };
-        NonNull::new(result as *mut _).map(|inner| crate::RenamedOpaqueZSTIndexer {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::RenamedOpaqueZSTIndexer {
             inner,
-            _not_send_sync: PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
 }
@@ -147,9 +147,9 @@ impl<'view> RenamedOpaqueZSTIndexerRefMut<'view> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result =
             unsafe { ffi::namespace_OpaqueZSTIndexer_index(self.inner.as_ptr() as *const _, idx) };
-        NonNull::new(result as *mut _).map(|inner| crate::RenamedOpaqueZSTIndexer {
+        core::ptr::NonNull::new(result as *mut _).map(|inner| crate::RenamedOpaqueZSTIndexer {
             inner,
-            _not_send_sync: PhantomData,
+            _not_send_sync: core::marker::PhantomData,
         })
     }
 }
