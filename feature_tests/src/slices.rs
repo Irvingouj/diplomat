@@ -245,15 +245,6 @@ pub mod ffi {
             Ok((0..len).map(|i| (i % 256) as u8).collect())
         }
 
-        /// How many heap allocations this provider library still holds.
-        /// Dropping an owned byte buffer must bring this back down. The copy a
-        /// caller makes with `clone_to_box` is allocated on their side and is
-        /// not included.
-        #[diplomat::attr(not(rust), disable)]
-        pub fn provider_live_allocations() -> usize {
-            crate::provider_alloc::live()
-        }
-
         #[diplomat::attr(rust, disable)]
         /// Optional variant of [`Self::make_bytes`]: `None` on `len == 0`.
         /// Exercises the `Option<Box<[u8]>>` bridge shape.

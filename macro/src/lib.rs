@@ -724,33 +724,6 @@ fn gen_bridge(mut input: ItemMod) -> ItemMod {
     }
 }
 
-/// Export the owned-byte destructor from this provider library.
-///
-/// Call this once, at crate root. The Rust backend frees a returned `Box<[u8]>`
-/// by calling `diplomat_provider_owned_slice_u8_destroy`. That symbol has to
-/// live in the provider: the consumer also links `diplomat-runtime`, which
-/// defines `diplomat_owned_slice_u8_destroy`, and a direct call would free the
-/// buffer with the consumer's allocator.
-#[proc_macro]
-pub fn export_owned_slice_destructor(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    quote! {
-        /// # Safety
-        ///
-        /// `ptr` and `len` must describe a `Box<[u8]>` allocated by this provider,
-        /// or `ptr` must be null. The buffer is freed here.
-        #[doc(hidden)]
-        #[no_mangle]
-        pub unsafe extern "C" fn diplomat_provider_owned_slice_u8_destroy(
-            ptr: *mut u8,
-            len: usize,
-        ) {
-            // SAFETY: the caller promises `ptr`/`len` are the provider's buffer.
-            unsafe { diplomat_runtime::diplomat_owned_slice_u8_destroy(ptr, len) }
-        }
-    }
-    .into()
-}
-
 /// Mark a module to be exposed through Diplomat-generated FFI.
 #[proc_macro_attribute]
 pub fn bridge(

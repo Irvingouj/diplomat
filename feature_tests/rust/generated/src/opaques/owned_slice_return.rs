@@ -118,12 +118,4 @@ impl OwnedSliceReturn {
             Err(result) => Err(result),
         }
     }
-    /// How many heap allocations this provider library still holds.
-    /// Dropping an owned byte buffer must bring this back down. The copy a
-    /// caller makes with `clone_to_box` is allocated on their side and is
-    /// not included.
-    pub fn provider_live_allocations() -> usize {
-        // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
-        unsafe { ffi::OwnedSliceReturn_provider_live_allocations() }
-    }
 }
