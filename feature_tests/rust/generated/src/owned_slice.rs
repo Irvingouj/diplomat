@@ -69,7 +69,7 @@ impl Drop for DiplomatBoxU8 {
         // SAFETY: `ptr`/`len` came from the provider, and this is the one free.
         // The symbol is the provider cdylib's copy, so the free runs in the
         // allocator that created the buffer.
-        unsafe { ffi::diplomat_owned_slice_u8_destroy(self.ptr, self.len) };
+        unsafe { ffi::diplomat_provider_owned_slice_u8_destroy(self.ptr, self.len) };
     }
 }
 

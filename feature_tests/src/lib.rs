@@ -14,12 +14,15 @@ struct Config;
 
 extern crate alloc;
 
+diplomat::export_owned_slice_destructor!();
+
 pub mod attrs;
 pub mod callbacks;
 pub mod imports;
 pub mod lifetimes;
 pub mod method_overloading;
 pub mod option;
+mod provider_alloc;
 pub mod result;
 pub mod selftype;
 pub mod slices;

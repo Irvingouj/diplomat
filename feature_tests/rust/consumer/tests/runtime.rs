@@ -190,6 +190,63 @@ fn owned_byte_slice_return_transfers_ownership() {
     );
 }
 
+/// Dropping the provider buffer frees that allocation inside the provider.
+/// The caller's copy is a different allocation and stays usable.
+#[test]
+fn dropping_owned_bytes_frees_them_in_the_provider() {
+    let before = OwnedSliceReturn::provider_live_allocations();
+    let owned = OwnedSliceReturn::make_bytes(5);
+    let held = OwnedSliceReturn::provider_live_allocations();
+    assert!(
+        held > before,
+        "the provider did not retain the buffer ({before} -> {held})"
+    );
+
+    let mut copy = owned.clone_to_box();
+    assert_eq!(
+        OwnedSliceReturn::provider_live_allocations(),
+        held,
+        "copying into the caller's box must not free the provider buffer"
+    );
+
+    drop(owned);
+    assert_eq!(
+        OwnedSliceReturn::provider_live_allocations(),
+        before,
+        "dropping the buffer must free it in the provider"
+    );
+    assert_eq!(&copy[..], &[0, 1, 2, 3, 4]);
+    copy[0] = 9;
+    assert_eq!(copy[0], 9);
+}
+
+/// A caller copies the bytes into their own `Box`, drops the provider buffer,
+/// and keeps using the copy. The copy is a separate allocation: changing it
+/// does not change another copy, and dropping the original does not invalidate it.
+#[test]
+fn cloned_bytes_outlive_the_provider_buffer() {
+    let owned = OwnedSliceReturn::make_bytes(5);
+    let mut first = owned.clone_to_box();
+    let second = owned.clone_to_box();
+    drop(owned);
+
+    assert_eq!(&first[..], &[0, 1, 2, 3, 4]);
+    assert_eq!(&second[..], &[0, 1, 2, 3, 4]);
+    first[0] = 9;
+    assert_eq!(first[0], 9);
+    assert_eq!(second[0], 0);
+
+    let empty = OwnedSliceReturn::make_bytes(0);
+    let empty_copy = empty.clone_to_box();
+    drop(empty);
+    assert!(empty_copy.is_empty());
+
+    let checked = OwnedSliceReturn::try_make_bytes(3).expect("3 is non-zero");
+    let checked_copy = checked.clone_to_box();
+    drop(checked);
+    assert_eq!(&checked_copy[..], &[0, 1, 2]);
+}
+
 /// An opaque that borrows out of a caller-owned slice, and returns a borrowed
 /// opaque view of its own contents.
 #[test]

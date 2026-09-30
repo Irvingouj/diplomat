@@ -244,7 +244,7 @@ pub struct OptionalFloatField {
 
 #[link(name = "diplomat_feature_tests")]
 extern "C" {
-    pub(super) fn diplomat_owned_slice_u8_destroy(ptr: *mut u8, len: usize);
+    pub(super) fn diplomat_provider_owned_slice_u8_destroy(ptr: *mut u8, len: usize);
     pub(super) fn namespace_AttrOpaque1_destroy(this: *mut AttrOpaque1Renamed);
     pub(super) fn namespace_AttrOpaque1_new() -> *mut AttrOpaque1Renamed;
     pub(super) fn namespace_AttrOpaque1_mac_test() -> i32;
@@ -465,6 +465,7 @@ extern "C" {
     pub(super) fn OwnedSliceReturn_try_make_bytes(
         len: u32,
     ) -> DiplomatResult<DiplomatOwnedSlice<u8>, super::ErrorEnum>;
+    pub(super) fn OwnedSliceReturn_provider_live_allocations() -> usize;
     pub(super) fn MyOpaqueEnum_destroy(this: *mut MyOpaqueEnum);
     pub(super) fn MyOpaqueEnum_new() -> *mut MyOpaqueEnum;
     pub(super) fn MyOpaqueEnum_to_string(this: *const MyOpaqueEnum, write: *mut DiplomatWrite);

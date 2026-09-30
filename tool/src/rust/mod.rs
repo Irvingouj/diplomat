@@ -1204,7 +1204,10 @@ mod tests {
             safe.contains("unsafe fn into_box(self) -> Box<[u8]>"),
             "{safe}"
         );
-        assert!(ffi.contains("diplomat_owned_slice_u8_destroy"), "{ffi}");
+        assert!(
+            ffi.contains("diplomat_provider_owned_slice_u8_destroy"),
+            "{ffi}"
+        );
         assert!(ffi.contains("DiplomatOwnedSlice<u8>"), "{ffi}");
     }
 
