@@ -59,6 +59,30 @@ pub(super) fn struct_generics(strct: &hir::StructDef) -> (String, String) {
     (render_generics(&params), render_generics(&args))
 }
 
+/// The lifetime arguments an ABI declaration gives a struct: one placeholder per
+/// lifetime.
+///
+/// An `extern` block declares no lifetime parameters for a receiver or a parameter,
+/// and the ABI does not carry the struct's lifetime anyway: the value crosses as a raw
+/// pointer or as a `#[repr(C)]` value whose borrow is the caller's business. Naming the
+/// HIR lifetime here writes a name the declaration never binds, which rustc rejects:
+///
+/// ```text
+/// error[E0261]: use of undeclared lifetime name `'a`
+///   --> src/ffi.rs:532:57
+/// ```
+///
+/// A return type keeps its named lifetimes, because `ffi_return_generics` declares
+/// exactly those on the function.
+pub(super) fn abi_struct_args(strct: &hir::StructDef) -> String {
+    let placeholders: Vec<String> = strct
+        .lifetimes
+        .all_lifetimes()
+        .map(|_| "'_".to_string())
+        .collect();
+    render_generics(&placeholders)
+}
+
 /// The invariant `PhantomData` field of a lifetime-carrying struct.
 pub(super) fn struct_lifetime_phantom(strct: &hir::StructDef) -> String {
     lifetime_phantom(&lifetime_names(&strct.lifetimes))

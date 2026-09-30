@@ -789,9 +789,10 @@ mod tests {
             "{all}"
         );
         // The Ok arm constructs the owning wrapper from the raw pointer; the null check
-        // lives there, so a null cannot reach the wrapper.
+        // lives there, so a null cannot reach the wrapper. Every path is qualified,
+        // because this expression lands in whichever module declares the method.
         assert!(
-            all.contains("Ok(result) => Ok({ let inner = NonNull::new(result as *mut _).expect(\"Diplomat ABI returned null for non-null Counter\"); crate::Counter { inner, _not_send_sync: PhantomData } })"),
+            all.contains("Ok(result) => Ok({ let inner = core::ptr::NonNull::new(result as *mut _).expect(\"Diplomat ABI returned null for non-null Counter\"); crate::Counter { inner, _not_send_sync: core::marker::PhantomData } })"),
             "{all}"
         );
         assert!(all.contains("Err(result) => Err(result)"), "{all}");
@@ -824,7 +825,7 @@ mod tests {
         // The owning wrapper in the Err arm is the only thing that destroys the provider's
         // allocation, so a `?` that discards the error still frees it.
         assert!(
-            all.contains("Err(result) => Err({ let inner = NonNull::new(result as *mut _).expect(\"Diplomat ABI returned null for non-null Failure\"); crate::Failure { inner, _not_send_sync: PhantomData } })"),
+            all.contains("Err(result) => Err({ let inner = core::ptr::NonNull::new(result as *mut _).expect(\"Diplomat ABI returned null for non-null Failure\"); crate::Failure { inner, _not_send_sync: core::marker::PhantomData } })"),
             "{all}"
         );
     }

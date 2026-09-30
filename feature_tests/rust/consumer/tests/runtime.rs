@@ -8,8 +8,8 @@
 #![forbid(unsafe_code)]
 
 use diplomat_rust_backend_generated::{
-    BigStructWithStuff, ContiguousEnum, CyclicStructA, CyclicStructB, DefaultEnum, ErrorEnum,
-    Float64Vec, HolderFactory, HolderKind, MyEnum, MyOpaqueEnum, MyString, MyStruct,
+    BigStructWithStuff, BorrowedBytes, ContiguousEnum, CyclicStructA, CyclicStructB, DefaultEnum,
+    ErrorEnum, Float64Vec, HolderFactory, HolderKind, MyEnum, MyOpaqueEnum, MyString, MyStruct,
     MyStructContainingAnOption, NestedCharField, NestedConvertingFields, NestedOptionField, Opaque,
     OpaqueMutexedString, OpaqueThinVec, OptionEnum, OptionInputStruct, OptionOpaque, OptionString,
     OwnedSliceReturn, RenamedMixinTest, ResultOpaque, ScalarPairWithPadding, Utf16Wrap,
@@ -402,4 +402,18 @@ fn a_value_type_can_hand_out_an_opaque() {
 
     assert_eq!(HolderKind::make().get_debug_str(), "\"\"");
     assert_ne!(HolderKind::First, HolderKind::Second);
+}
+
+/// A lifetime-carrying struct is passed to its own method by value, and the bytes it
+/// borrows are the caller's for as long as it lives.
+#[test]
+fn a_lifetime_struct_is_measured_by_its_own_method() {
+    let bytes = [1u8, 2, 3, 4];
+    let borrowed = BorrowedBytes::from_bytes(&bytes);
+    assert_eq!(borrowed.bytes, &[1, 2, 3, 4]);
+    assert_eq!(borrowed.len(), 4);
+
+    let empty = [0u8; 0];
+    let borrowed = BorrowedBytes::from_bytes(&empty);
+    assert_eq!(borrowed.len(), 0);
 }

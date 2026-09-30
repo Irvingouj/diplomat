@@ -183,6 +183,11 @@ pub struct Utf16Wrap {
 }
 
 #[repr(C)]
+pub struct BorrowedBytes<'a> {
+    pub(super) bytes: DiplomatSlice<'a, u8>,
+}
+
+#[repr(C)]
 pub struct BorrowedFieldsReturning<'a> {
     pub(super) bytes: DiplomatSlice<'a, u8>,
 }
@@ -402,7 +407,7 @@ extern "C" {
         arg: DiplomatOption<super::OptionEnum>,
         sentinel: u8,
     ) -> DiplomatOption<super::OptionEnum>;
-    pub(super) fn OptionOpaque_accepts_borrowing_option_struct(arg: BorrowingOptionStruct);
+    pub(super) fn OptionOpaque_accepts_borrowing_option_struct(arg: BorrowingOptionStruct<'_>);
     pub(super) fn OptionOpaque_accepts_multiple_option_enum(
         sentinel1: u8,
         arg1: DiplomatOption<super::OptionEnum>,
@@ -524,6 +529,8 @@ extern "C" {
     ) -> DiplomatResult<super::RenamedStructWithAttrs, ()>;
     pub(super) fn namespace_StructWithAttrs_c(this: super::RenamedStructWithAttrs) -> u32;
     pub(super) fn namespace_StructWithAttrs_deprecated(this: super::RenamedStructWithAttrs);
+    pub(super) fn BorrowedBytes_from_bytes<'a>(bytes: DiplomatSlice<u8>) -> BorrowedBytes<'a>;
+    pub(super) fn BorrowedBytes_len(this: BorrowedBytes<'_>) -> usize;
     pub(super) fn ErrorStruct_returns_result_option(
         is_some: bool,
     ) -> DiplomatResult<DiplomatOption<super::ErrorStruct>, ()>;

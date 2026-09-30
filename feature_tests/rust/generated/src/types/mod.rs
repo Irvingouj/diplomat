@@ -1,6 +1,7 @@
 //! Generated enums and value structs, one module per type.
 
 mod big_struct_with_stuff;
+mod borrowed_bytes;
 mod borrowed_fields_returning;
 mod borrowing_option_struct;
 mod cached_include_zst;
@@ -37,6 +38,7 @@ mod scalar_pair_with_padding;
 mod unimported_enum;
 
 pub use big_struct_with_stuff::*;
+pub use borrowed_bytes::*;
 pub use borrowed_fields_returning::*;
 pub use borrowing_option_struct::*;
 pub use cached_include_zst::*;

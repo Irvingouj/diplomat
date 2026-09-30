@@ -107,6 +107,26 @@ pub mod ffi {
     pub struct BorrowedFieldsReturning<'a> {
         bytes: DiplomatStrSlice<'a>,
     }
+
+    /// A method on a lifetime-carrying struct. The receiver is the one place that names
+    /// the struct's lifetime outside the struct's own declaration, and the `extern`
+    /// block that declares the method does not declare the lifetime: it names a
+    /// placeholder, because the ABI does not carry one.
+    #[diplomat::attr(not(rust), disable)]
+    pub struct BorrowedBytes<'a> {
+        pub bytes: DiplomatStrSlice<'a>,
+    }
+
+    impl<'a> BorrowedBytes<'a> {
+        /// The caller's own bytes, borrowed for as long as the returned value lives.
+        pub fn from_bytes(bytes: DiplomatStrSlice<'a>) -> Self {
+            BorrowedBytes { bytes }
+        }
+
+        pub fn len(self) -> usize {
+            self.bytes.len()
+        }
+    }
     impl<'a> Foo<'a> {
         #[diplomat::attr(auto, constructor)]
         #[diplomat::attr(dotnet, disable)]

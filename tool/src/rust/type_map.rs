@@ -8,7 +8,9 @@ use diplomat_core::hir::{
 };
 
 use super::formatter::{enum_name, field_name, opaque_name, type_def_name};
-use super::lifetimes::{lifetime_name, lifetime_prefix, render_generics, struct_generics};
+use super::lifetimes::{
+    abi_struct_args, lifetime_name, lifetime_prefix, render_generics, struct_generics,
+};
 
 /// A primitive, enum, or plain `repr(C)` value struct — the payload this backend
 /// can copy across the ABI without a wrapper. Nested owning/lifetime fields fail
@@ -426,8 +428,10 @@ pub(super) fn ffi_self_type(ty: &SelfType, tcx: &TypeContext) -> String {
         SelfType::Struct(path) => {
             let strct = path.resolve(tcx);
             // A mirrored struct's ABI type lives in `ffi` and may be generic; a
-            // layout-identical struct is the public type in `super`.
-            let (_, args) = struct_generics(strct);
+            // layout-identical struct is the public type in `super`. The receiver
+            // carries no lifetime the declaration could name, so the generics are
+            // placeholders.
+            let args = abi_struct_args(strct);
             let name = format!("{}{args}", ffi_value_name(TypeDef::Struct(strct), tcx));
             match path.owner {
                 MaybeOwn::Own => name,
@@ -742,7 +746,16 @@ pub(super) fn ffi_value_type<P: hir::TyPosition>(ty: &Type<P>, tcx: &TypeContext
     match ty {
         Type::Primitive(p) => primitive_name(*p).unwrap().into(),
         Type::Enum(path) => ffi_value_name(TypeDef::Enum(path.resolve(tcx)), tcx),
-        Type::Struct(path) => ffi_value_name(tcx.resolve_type(path.id()), tcx),
+        // A lifetime-bearing struct names placeholders here for the same reason its
+        // receiver does: the declaration binds no lifetime of its own.
+        Type::Struct(path) => match tcx.resolve_type(path.id()) {
+            TypeDef::Struct(strct) => format!(
+                "{}{}",
+                ffi_value_name(TypeDef::Struct(strct), tcx),
+                abi_struct_args(strct)
+            ),
+            _ => unreachable!("validated value type"),
+        },
         _ => unreachable!("validated value type"),
     }
 }
