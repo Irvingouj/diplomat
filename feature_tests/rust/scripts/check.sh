@@ -250,6 +250,29 @@ if nm "$consumer_bin" | grep -E "[[:space:]][Tt][[:space:]].*$probe_ctor" >/dev/
     fail "consumer defines provider constructor/destructor symbols"
 fi
 
+# "Imported" is a promise about the executable, not about where the call goes: a symbol
+# can be undefined and still bind to a definition another loaded object provides. Ask the
+# dynamic loader where each one actually lands.
+case "$(uname -s)" in
+    Darwin) binding_trace_env="DYLD_PRINT_BINDINGS=1" ;;
+    Linux) binding_trace_env="LD_DEBUG=bindings" ;;
+    *) binding_trace_env="" ;;
+esac
+if [ -n "$binding_trace_env" ]; then
+    # shellcheck disable=SC2086
+    if ! env $binding_trace_env "$consumer_bin" >"$target_dir/consumer-bindings.txt" 2>&1; then
+        fail "running the consumer test executable with $binding_trace_env failed"
+    fi
+    for symbol in diplomat_owned_slice_u8_destroy diplomat_buffer_write_create \
+        diplomat_buffer_write_get_bytes diplomat_buffer_write_len diplomat_buffer_write_destroy; do
+        grep -F "$symbol" "$target_dir/consumer-bindings.txt" | grep -F "$provider_name" >/dev/null \
+            || fail "no binding of $symbol to $provider_name in the dynamic loader trace"
+    done
+    echo "   binding trace: $target_dir/consumer-bindings.txt"
+else
+    echo "   note: $(uname -s) has no binding trace here; the undefined-symbol proof above is what applies"
+fi
+
 echo "== prove the provider is a dynamic dependency =="
 case "$(uname -s)" in
     Darwin)
