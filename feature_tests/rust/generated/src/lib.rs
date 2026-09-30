@@ -22,6 +22,12 @@ mod owned_slice;
 mod private;
 mod types;
 
+/// The ABI types this crate speaks to the provider with. Not part of the public
+/// API: the fields are private, and nothing here can be built except from a
+/// reference or from what the ABI returns.
+#[doc(hidden)]
+pub mod abi;
+
 pub use opaques::*;
 pub use owned_slice::DiplomatBoxU8;
 pub use types::*;

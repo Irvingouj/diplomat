@@ -1,9 +1,11 @@
 //! An owned byte buffer allocated by the provider cdylib.
 //!
-//! `Drop` calls the provider's `diplomat_owned_slice_u8_destroy`, so the
-//! allocator that created the buffer is the one that frees it. Reading is
-//! free. Turning it into a `Box<[u8]>` either copies (`clone_to_box`) or
-//! reuses the allocation when the caller promises the allocators match
+//! The pointer comes out of the ABI as a `DiplomatOwnedSlice<u8>`, which has no
+//! destructor of its own, so this is the only value that can release the buffer.
+//! `Drop` calls the provider's `diplomat_owned_slice_u8_destroy`, in the provider
+//! cdylib, so the allocator that created the buffer is the one that frees it.
+//! Reading is free. Turning it into a `Box<[u8]>` either copies (`clone_to_box`)
+//! or reuses the allocation when the caller promises the allocators match
 //! (`into_box`).
 
 use core::borrow::Borrow;
@@ -20,12 +22,9 @@ pub struct DiplomatBoxU8 {
 
 impl DiplomatBoxU8 {
     pub(crate) fn from_abi(slice: ffi::DiplomatOwnedSlice<u8>) -> Self {
-        // `DiplomatOwnedSlice`'s fields are private. `Box::from` reads the
-        // pointer out without freeing, and `into_raw` hands that same pointer
-        // back before the temporary box can be dropped.
-        let boxed: Box<[u8]> = Box::from(slice);
-        let len = boxed.len();
-        let ptr = Box::into_raw(boxed) as *mut u8;
+        // The raw parts move into this value. Nothing frees them on the way: the ABI
+        // container has no destructor, and neither does this construction.
+        let (ptr, len) = slice.into_raw_parts();
         Self { ptr, len }
     }
 

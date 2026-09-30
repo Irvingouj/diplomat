@@ -22,8 +22,8 @@ use crate::{Config, ErrorStore, FileMap};
 
 use formatter::{opaque_module_name, sanitize_package_component, valid_package_name};
 use gen::{
-    generate_ffi, generate_lib, generate_opaque_file, generate_opaques_index, generate_owned_slice,
-    generate_private, generate_type_files,
+    generate_abi, generate_ffi, generate_lib, generate_opaque_file, generate_opaques_index,
+    generate_owned_slice, generate_private, generate_type_files,
 };
 use validate::{validate, Reporter};
 
@@ -169,6 +169,7 @@ pub(crate) fn run<'tcx>(
     files.add_file("Cargo.toml".into(), package);
     files.add_file("build.rs".into(), build);
     files.add_file("src/lib.rs".into(), generate_lib());
+    files.add_file("src/abi.rs".into(), generate_abi());
     files.add_file("src/owned_slice.rs".into(), generate_owned_slice());
     files.add_file("src/ffi.rs".into(), generate_ffi(tcx, &dylib_name));
     files.add_file("src/private.rs".into(), generate_private(tcx));
@@ -959,8 +960,8 @@ mod tests {
         assert!(ffi.contains("DiplomatSlice<u32>"), "{ffi}");
         assert!(ffi.contains("DiplomatSliceMut<u32>"), "{ffi}");
         assert!(
-            ffi.contains("pub(super) use diplomat_runtime::{"),
-            "the FFI layer must re-export the runtime ABI types: {ffi}"
+            ffi.contains("pub(super) use crate::abi::{"),
+            "the FFI layer must re-export this crate's own ABI types: {ffi}"
         );
         assert!(
             !ffi.contains("struct DiplomatSlice"),

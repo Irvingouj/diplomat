@@ -8,5 +8,6 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
-[dependencies]
-diplomat-runtime = "0.16"
+# No dependencies. The ABI types the generated code speaks are transcribed in
+# `src/abi.rs`; the only thing this crate links is the provider's cdylib, and the
+# only symbols it imports from it are the provider's own.

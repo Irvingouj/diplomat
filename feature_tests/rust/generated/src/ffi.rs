@@ -4,10 +4,10 @@
 // provider's ABI; rustc still flags empty structs in `extern` blocks.
 #![allow(improper_ctypes)]
 
-// The ABI types come from `diplomat-runtime` instead of being transcribed
-// here: a hand-maintained mirror with no layout check is a silent-UB hazard.
-// Re-exported so the sibling modules can name them as `ffi::DiplomatSlice`.
-pub(super) use diplomat_runtime::{
+// The ABI types are this crate's own, transcribed in `crate::abi` with private
+// fields and with no destructor of their own. Re-exported so the sibling modules
+// can name them as `ffi::DiplomatSlice`.
+pub(super) use crate::abi::{
     DiplomatOption, DiplomatOwnedSlice, DiplomatResult, DiplomatSlice, DiplomatSliceMut,
     DiplomatWrite,
 };
@@ -245,6 +245,14 @@ pub struct OptionalFloatField {
 #[link(name = "diplomat_feature_tests")]
 extern "C" {
     pub(super) fn diplomat_owned_slice_u8_destroy(ptr: *mut u8, len: usize);
+
+    // The writer object and its buffer belong to the provider: it creates them,
+    // grows them, and frees them again, so no byte of the buffer crosses
+    // allocators. The consumer only ever holds the pointer.
+    pub(super) fn diplomat_buffer_write_create(cap: usize) -> *mut DiplomatWrite;
+    pub(super) fn diplomat_buffer_write_get_bytes(this: *mut DiplomatWrite) -> *mut u8;
+    pub(super) fn diplomat_buffer_write_len(this: *mut DiplomatWrite) -> usize;
+    pub(super) fn diplomat_buffer_write_destroy(this: *mut DiplomatWrite);
     pub(super) fn namespace_AttrOpaque1_destroy(this: *mut AttrOpaque1Renamed);
     pub(super) fn namespace_AttrOpaque1_new() -> *mut AttrOpaque1Renamed;
     pub(super) fn namespace_AttrOpaque1_mac_test() -> i32;

@@ -170,22 +170,37 @@ done
 printf '%s\n' "$consumer_tree" >"$target_dir/consumer-cargo-tree.txt"
 printf '%s\n' "$generated_tree" >"$target_dir/generated-cargo-tree.txt"
 
-echo "== prove the generated crate owns no ABI types and does depend on diplomat-runtime =="
-grep -F 'diplomat-runtime' "$generated_dir/Cargo.toml" >/dev/null \
-    || fail "generated Cargo.toml does not declare a diplomat-runtime dependency"
-if grep -rF -e 'struct DiplomatSlice' -e 'struct DiplomatSliceMut' \
-    -e 'struct DiplomatOwnedSlice' -e 'struct DiplomatOption' \
-    -e 'struct DiplomatResult' -e 'union DiplomatOptionValue' \
-    -e 'union DiplomatResultValue' "$generated_dir/src" >/dev/null; then
-    fail "generated crate defines a local ABI type instead of using diplomat-runtime"
+echo "== prove the generated crate carries its own ABI and links nothing else =="
+# A generated package must resolve no Rust dependency at all. Anything it links that
+# also defines the provider's symbols — `diplomat_owned_slice_u8_destroy` above all —
+# puts a second definition in the consumer's binary, where the linker binds the
+# consumer's call to the local copy and the provider's export goes unused. That is how
+# a provider allocation ends up freed by the consumer's allocator.
+[ "$(printf '%s\n' "$generated_tree" | wc -l | tr -d ' ')" = "1" ] \
+    || fail "generated crate resolves Rust dependencies: $(printf '%s\n' "$generated_tree" | tail -n +2 | tr '\n' ' ')"
+for abi_type in 'struct DiplomatSlice' 'struct DiplomatSliceMut' 'struct DiplomatOwnedSlice' \
+    'struct DiplomatResult' 'union DiplomatResultValue' 'type DiplomatOption'; do
+    grep -rF -e "$abi_type" "$generated_dir/src/abi.rs" >/dev/null \
+        || fail "the generated ABI module does not define $abi_type"
+done
+if grep -rF -e 'diplomat_runtime' -e 'diplomat-runtime' \
+    "$generated_dir/src" "$generated_dir/Cargo.toml" >/dev/null; then
+    fail "the generated crate names diplomat-runtime; its ABI must be its own"
 fi
+
+echo "== prove the transcription still matches the runtime the provider is built from =="
+# Size, alignment, field offsets, and the drop semantics of the container. Without
+# this, a transcription that drifts from the runtime's `repr(C)` types compiles and
+# reads the wrong bytes. It links the provider cdylib, so it runs below, once the
+# library search path is set.
 
 native_dir="$target_dir/debug"
 export DIPLOMAT_RUST_NATIVE_LIB_DIR="$native_dir"
 export DYLD_LIBRARY_PATH="$native_dir${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
 export LD_LIBRARY_PATH="$native_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-echo "== run the safe consumer and compile-fail test suites =="
+echo "== run the ABI conformance, safe consumer and compile-fail test suites =="
+cargo test --manifest-path "$fixture_dir/abi/Cargo.toml"
 cargo test --manifest-path "$fixture_dir/Cargo.toml" --workspace
 
 echo "== prove fixture sources, generated code, and tests are fmt- and lint-clean =="
@@ -218,6 +233,19 @@ grep "$probe_ctor" "$target_dir/provider-symbols.txt" >/dev/null || fail "provid
 grep "$probe_dtor" "$target_dir/provider-symbols.txt" >/dev/null || fail "provider does not define $probe_dtor"
 grep "$probe_ctor" "$target_dir/consumer-undefined-symbols.txt" >/dev/null || fail "consumer does not import $probe_ctor"
 grep "$probe_dtor" "$target_dir/consumer-undefined-symbols.txt" >/dev/null || fail "consumer does not import $probe_dtor"
+# The provider's own runtime symbols. The consumer must import them, and must not
+# define them: a consumer that defines one of these has linked provider machinery and
+# will free, or write into, memory the provider allocated with its own allocator.
+for symbol in diplomat_owned_slice_u8_destroy diplomat_buffer_write_create \
+    diplomat_buffer_write_get_bytes diplomat_buffer_write_len diplomat_buffer_write_destroy; do
+    grep "$symbol" "$target_dir/provider-symbols.txt" >/dev/null \
+        || fail "provider does not define $symbol"
+    grep "$symbol" "$target_dir/consumer-undefined-symbols.txt" >/dev/null \
+        || fail "consumer does not import $symbol from the provider"
+    if nm "$consumer_bin" | grep -E "[[:space:]][Tt][[:space:]].*$symbol" >/dev/null; then
+        fail "consumer defines $symbol, which belongs to the provider"
+    fi
+done
 if nm "$consumer_bin" | grep -E "[[:space:]][Tt][[:space:]].*$probe_ctor" >/dev/null; then
     fail "consumer defines provider constructor/destructor symbols"
 fi

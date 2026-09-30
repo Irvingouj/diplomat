@@ -239,35 +239,29 @@ pub trait Utf16WrapMutSealed: Utf16WrapSharedSealed {
 
 /// Reconstruct a validated `&str` from a provider-returned UTF-8 slice.
 ///
-/// The runtime can turn a `DiplomatSlice` back into a `&[T]`, but
-/// `DiplomatUtf8StrSlice`'s field is private, so this is the one conversion the
-/// runtime cannot express and the generated crate keeps locally.
+/// The ABI slice converts into a `&[u8]`, but nothing in that conversion checks
+/// UTF-8, and `&str` demands it — hence `from_utf8_unchecked` and the contract on
+/// this function.
 ///
 /// # Safety
 ///
 /// The caller must uphold the provider's validity, alignment, aliasing, UTF-8,
 /// and lifetime contract for the slice for the returned lifetime. The ABI type
 /// cannot express UTF-8 validity, so the provider must send valid UTF-8.
-pub(crate) unsafe fn utf8_str_from_slice<'a>(
-    slice: diplomat_runtime::DiplomatSlice<'a, u8>,
-) -> &'a str {
+pub(crate) unsafe fn utf8_str_from_slice<'a>(slice: crate::ffi::DiplomatSlice<'a, u8>) -> &'a str {
     core::str::from_utf8_unchecked(<&[u8]>::from(slice))
 }
 
 /// Drive a `DiplomatWrite` out-parameter and return the written UTF-8.
 ///
-/// The writer is constructed here, handed to the provider as a raw pointer, and
-/// never exposed on the public API. The copy out of `as_bytes` is what keeps the
-/// generated crate compatible with published `diplomat-runtime` 0.16, which has
-/// `RustWriteVec` but not a consuming `into_string`.
-pub(crate) fn with_write<R>(
-    f: impl FnOnce(*mut diplomat_runtime::DiplomatWrite) -> R,
-) -> (R, String) {
-    let mut write = diplomat_runtime::rust_interop::RustWriteVec::with_capacity(0);
-    // SAFETY: this is the only DiplomatWrite in scope; it was created by
-    // diplomat_buffer_write_create and is not swapped with another instance.
-    let result = f(unsafe { write.borrow_mut() });
-    let text = String::from_utf8(write.borrow().as_bytes().to_vec())
-        .expect("DiplomatWrite contains non-UTF-8 bytes");
+/// The buffer is created, grown and freed by the provider; the written bytes are
+/// copied out before it is released. The writer itself never reaches the public
+/// API.
+pub(crate) fn with_write<R>(f: impl FnOnce(*mut crate::ffi::DiplomatWrite) -> R) -> (R, String) {
+    let mut write = crate::abi::WriteBuf::new();
+    // SAFETY: `write` holds the only pointer to this buffer for the whole call, so
+    // the provider cannot see a second `DiplomatWrite` that shares its state.
+    let result = f(write.as_mut_ptr());
+    let text = write.to_string();
     (result, text)
 }

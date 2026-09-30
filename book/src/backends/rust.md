@@ -1,6 +1,12 @@
 # Rust Backend
 
-The Rust backend emits a Cargo package whose public API is safe Rust. It calls the provider cdylib through Diplomat's C ABI. The generated crate depends on `diplomat-runtime` and does not depend on the provider crate.
+The Rust backend emits a Cargo package whose public API is safe Rust. It calls the provider cdylib through Diplomat's C ABI. The generated crate has no dependencies at all: not the provider crate, and not `diplomat-runtime` either.
+
+## The consumer half of the ABI
+
+`src/abi.rs` transcribes the `#[repr(C)]` types the provider's symbols speak: `DiplomatSlice`, `DiplomatSliceMut`, `DiplomatOwnedSlice`, `DiplomatResult`, `DiplomatOption`, and the opaque `DiplomatWrite`. The alternative is depending on `diplomat-runtime`, which is provider machinery: it defines `diplomat_owned_slice_u8_destroy` and the write-buffer helpers, and a definition inside the consumer's own binary is what the linker binds the consumer's call to. The provider's exports then go unused, and the provider's allocation is freed by the consumer's allocator — not something a provider agreed to.
+
+A transcription has its own hazard in return: drifting from the runtime's definition still compiles. So the fixture checks it. `feature_tests/rust/abi` compares the two definitions — size, alignment, the offset each field actually lands at, and the drop semantics of the container — and it is the only crate in the fixture that links `diplomat-runtime`. The generated crate and the consumer must not.
 
 ```sh
 diplomat-tool -e {PATH_TO_LIB.RS} -c {CONFIG_FILE} rust {OUTPUT_PATH}
@@ -19,7 +25,9 @@ Configuration:
 DIPLOMAT_RUST_NATIVE_LIB_DIR=target/debug cargo build
 ```
 
-An owned `Box<[u8]>` from the provider is returned as `DiplomatBoxU8`. `Deref` and `AsRef<[u8]>` borrow the bytes. `clone_to_box` copies them into a `Box<[u8]>` this crate allocates. `into_box` reuses the allocation and is `unsafe`: this crate and the provider cdylib must use the same global allocator. `Drop` calls `diplomat_owned_slice_u8_destroy` in the provider cdylib.
+An owned `Box<[u8]>` from the provider is returned as `DiplomatBoxU8`. `Deref` and `AsRef<[u8]>` borrow the bytes. `clone_to_box` copies them into a `Box<[u8]>` this crate allocates. `into_box` reuses the allocation and is `unsafe`: this crate and the provider cdylib must use the same global allocator. `Drop` calls `diplomat_owned_slice_u8_destroy`, imported from the provider cdylib, so the allocator that created the buffer is the one that frees it.
+
+A `DiplomatWrite` out-parameter is driven the same way. The provider's `diplomat_buffer_write_create`/`_len`/`_get_bytes`/`_destroy` build, measure and release the buffer, and the written text is copied out before it is released, so no byte of it reaches an allocator the consumer chose.
 
 Method names are rendered in snake_case, including a `named_constructor` name. `f64BeBytes` becomes `f64_be_bytes`.
 

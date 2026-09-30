@@ -1,0 +1,16 @@
+[package]
+name = "diplomat-rust-backend-abi"
+version = "0.1.0"
+edition.workspace = true
+publish = false
+
+# The generated crate is the subject: its ABI transcription is compared against
+# the runtime the feature-test provider is built from.
+[dependencies]
+diplomat-rust-backend-generated = { path = "../generated" }
+
+# Deliberately *not* a dependency of the generated crate or the consumer: the
+# consumer must link nothing but the provider cdylib. This crate is where the
+# runtime is allowed, so that the two definitions can be compared.
+[dev-dependencies]
+diplomat-runtime = { path = "../../../runtime" }

@@ -10,9 +10,14 @@ feature_tests/src (shared corpus) -> diplomat-tool rust -> generated package
                                      native Diplomat ABI -> safe consumer
 ```
 
-- `generated` — the complete output of `diplomat-tool rust`, depending on
-  `diplomat-runtime` by version. `cargo make gen-rust-feature` regenerates it.
+- `generated` — the complete output of `diplomat-tool rust`. It has no Cargo
+  dependencies: the ABI types it speaks are transcribed in `src/abi.rs`.
+  `cargo make gen-rust-feature` regenerates it.
 - `consumer` — `#![forbid(unsafe_code)]`, depending only on `generated`.
+- `abi` — the conformance crate: it links `diplomat-runtime` and compares the
+  transcription against it (size, alignment, field offsets, drop semantics). No
+  other crate here may link the runtime, or the consumer would inherit the
+  runtime's own definitions of the provider's symbols.
 - `compile_fail` — standalone negative sources, excluded from normal workspace
   builds and driven case-by-case from `tests/compile_fail.rs`.
 
@@ -43,6 +48,9 @@ Coverage is ordinary `#[test]` code run by `cargo test` — there is no bespoke
   rejected by the Rust type system.
 
 Run `scripts/check.sh`. It regenerates the bindings, builds the shared corpus
-crate as the provider, runs both test suites, enforces `cargo fmt --check` and
-`cargo clippy -- -D warnings`, and records `cargo tree`, `nm`, and
-`otool -L`/`readelf` evidence under `target/`.
+crate as the provider, runs the ABI conformance suite and both consumer test suites,
+enforces `cargo fmt --check` and `cargo clippy -- -D warnings`, and records
+`cargo tree`, `nm`, and `otool -L`/`readelf` evidence under `target/`. The `nm` step
+proves the direction of the symbols: the provider defines
+`diplomat_owned_slice_u8_destroy` and the write-buffer helpers, the consumer imports
+them, and the consumer defines none of them.

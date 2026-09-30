@@ -36,6 +36,12 @@ struct FfiTemplate {
 #[template(path = "rust/lib.rs.jinja", escape = "none")]
 struct LibTemplate;
 
+/// The consumer half of the ABI: the `#[repr(C)]` types the provider's symbols
+/// speak, transcribed so the generated crate links no provider machinery at all.
+#[derive(Template)]
+#[template(path = "rust/abi.rs.jinja", escape = "none")]
+struct AbiTemplate;
+
 #[derive(Template)]
 #[template(path = "rust/owned_slice.rs.jinja", escape = "none")]
 struct OwnedSliceTemplate;
@@ -183,6 +189,12 @@ pub(super) fn generate_lib() -> String {
     LibTemplate
         .render()
         .expect("Rust lib template rendering cannot fail")
+}
+
+pub(super) fn generate_abi() -> String {
+    AbiTemplate
+        .render()
+        .expect("Rust ABI template rendering cannot fail")
 }
 
 pub(super) fn generate_owned_slice() -> String {
