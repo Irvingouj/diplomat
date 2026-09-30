@@ -470,6 +470,9 @@ extern "C" {
     pub(super) fn MyString_borrow<'a>(this: *const MyString) -> DiplomatSlice<'a, u8>;
     pub(super) fn OwnedSliceReturn_destroy(this: *mut OwnedSliceReturn);
     pub(super) fn OwnedSliceReturn_make_bytes(len: u32) -> DiplomatOwnedSlice<u8>;
+    pub(super) fn OwnedSliceReturn_try_make_bytes(
+        len: u32,
+    ) -> DiplomatResult<DiplomatOwnedSlice<u8>, super::ErrorEnum>;
     pub(super) fn MyOpaqueEnum_destroy(this: *mut MyOpaqueEnum);
     pub(super) fn MyOpaqueEnum_new() -> *mut MyOpaqueEnum;
     pub(super) fn MyOpaqueEnum_to_string(this: *const MyOpaqueEnum, write: *mut DiplomatWrite);

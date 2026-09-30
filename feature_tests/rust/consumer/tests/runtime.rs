@@ -181,6 +181,28 @@ fn owned_byte_slice_return_transfers_ownership() {
     assert!(OwnedSliceReturn::make_bytes(0).is_empty());
 }
 
+/// The same buffer, crossed through `Result`. The payload has a destructor, so this
+/// is the shape where a conversion that copies the union field instead of taking it
+/// frees the provider's allocation twice.
+#[test]
+fn a_fallible_owned_byte_slice_crosses_result_once() {
+    let owned = OwnedSliceReturn::try_make_bytes(5).expect("a non-zero length is ok");
+    assert_eq!(&owned[..], &[0, 1, 2, 3, 4]);
+    // Dropping the payload frees the provider's buffer through the provider's own
+    // destructor. A second free would not survive the allocator's bookkeeping.
+    drop(owned);
+
+    let owned = OwnedSliceReturn::try_make_bytes(3).expect("a non-zero length is ok");
+    let copy = owned.clone_to_box();
+    drop(owned);
+    assert_eq!(&copy[..], &[0, 1, 2]);
+
+    assert!(matches!(
+        OwnedSliceReturn::try_make_bytes(0),
+        Err(ErrorEnum::Foo)
+    ));
+}
+
 /// A caller copies the bytes into their own `Box`, drops the provider buffer,
 /// and keeps using the copy. The copy is a separate allocation: changing it
 /// does not change another copy, and dropping the original does not invalidate it.

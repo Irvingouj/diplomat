@@ -4,6 +4,8 @@ use core::ptr::NonNull;
 use std::rc::Rc;
 
 use crate::ffi;
+#[allow(unused_imports)]
+use crate::types::*;
 
 pub struct OwnedSliceReturn {
     pub(crate) inner: NonNull<ffi::OwnedSliceReturn>,
@@ -105,5 +107,17 @@ impl OwnedSliceReturn {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::OwnedSliceReturn_make_bytes(len) };
         crate::DiplomatBoxU8::from_abi(result)
+    }
+    /// Fallible variant of [Self::make_bytes]: errors on `len == 0`.
+    /// Exercises the `Result<Box<[u8]>, E>` bridge shape: the payload has a
+    /// destructor, so the conversion out of `DiplomatResult` has to move it exactly
+    /// once rather than free it twice.
+    pub fn try_make_bytes(len: u32) -> Result<crate::DiplomatBoxU8, ErrorEnum> {
+        // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
+        let result = unsafe { ffi::OwnedSliceReturn_try_make_bytes(len) };
+        match Result::from(result) {
+            Ok(result) => Ok(crate::DiplomatBoxU8::from_abi(result)),
+            Err(result) => Err(result),
+        }
     }
 }

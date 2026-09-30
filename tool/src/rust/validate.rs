@@ -260,12 +260,6 @@ pub(super) fn validate_methods<'tcx>(
         // A `Result`'s error payload has a more specific diagnostic than the blanket one,
         // so it is reported in its place rather than alongside it.
         let output_problem = match &method.output {
-            ReturnType::Fallible(success, err) if result_carries_owned_slice(success, err) => {
-                Some(
-                    "a Result cannot carry an owned byte slice; diplomat-runtime 0.16 drops that payload twice"
-                        .into(),
-                )
-            }
             ReturnType::Fallible(success, err) if is_success_type(success, tcx) => {
                 check_fallible_error(err, tcx).err()
             }
@@ -327,21 +321,6 @@ pub(super) fn validate_methods<'tcx>(
             }
         }
     }
-}
-
-/// `DiplomatResult`'s conversion on diplomat-runtime 0.16 drops a payload that
-/// has a destructor twice. An owned byte slice is such a payload. A raw
-/// pointer, which is how an owned opaque crosses `Result`, is not.
-fn result_carries_owned_slice(success: &SuccessType, err: &Option<OutType>) -> bool {
-    let success_owned = match success {
-        SuccessType::OutType(Type::Slice(slice)) => is_owned_slice(slice),
-        _ => false,
-    };
-    let error_owned = match err {
-        Some(Type::Slice(slice)) => is_owned_slice(slice),
-        _ => false,
-    };
-    success_owned || error_owned
 }
 
 /// The declared name of a type the provider disabled for this backend with

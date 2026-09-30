@@ -1209,8 +1209,12 @@ mod tests {
         assert!(ffi.contains("DiplomatOwnedSlice<u8>"), "{ffi}");
     }
 
+    /// An owned byte slice is a payload with a destructor, which is the case that used
+    /// to be missing: the container's conversion must hand it over exactly once. The
+    /// consumer-side ABI layer owns that conversion now, so the shape is generated and
+    /// the generated code frees the buffer through the provider's destructor.
     #[test]
-    fn owned_byte_slice_inside_result_is_rejected() {
+    fn owned_byte_slice_inside_result_is_generated() {
         let (files, errors) = generate(quote! {
             #[diplomat::bridge]
             mod ffi {
@@ -1224,12 +1228,15 @@ mod tests {
                 }
             }
         });
-        assert!(files.is_empty(), "no partial output: {:#?}", files.keys());
+        assert!(errors.is_empty(), "{errors:#?}");
+        let safe = &files["src/opaques/holder.rs"];
         assert!(
-            errors
-                .iter()
-                .any(|error| error.contains("owned byte slice")),
-            "{errors:#?}"
+            safe.contains("Result<crate::DiplomatBoxU8, u32>"),
+            "the fallible owned slice must reach the consumer as a `DiplomatBoxU8`: {safe}"
+        );
+        assert!(
+            safe.contains("crate::DiplomatBoxU8::from_abi(result)"),
+            "the ok arm must hand the payload to the owning wrapper: {safe}"
         );
     }
 
