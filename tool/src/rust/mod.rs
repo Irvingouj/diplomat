@@ -1298,6 +1298,32 @@ mod tests {
         );
     }
 
+    /// Renaming the lifetimes does not hide a reorder. `impl<'y, 'x> P<'x, 'y>` shares no
+    /// name with `P<'a, 'b>`, yet it rendered as `impl<'y, 'x> P<'y, 'x>`, so `first`
+    /// returned the first field's data under the second parameter's lifetime.
+    #[test]
+    fn renamed_method_impl_lifetimes_must_follow_the_type_definition_order() {
+        let (files, errors) = generate(quote! {
+            #[diplomat::bridge]
+            mod ffi {
+                #[diplomat::opaque]
+                pub struct P<'a, 'b>(&'a [u8], &'b [u8]);
+                impl<'y, 'x> P<'x, 'y> {
+                    pub fn first(&self) -> &'x [u8] {
+                        self.0
+                    }
+                }
+            }
+        });
+        assert!(files.is_empty(), "no partial output: {:#?}", files.keys());
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("lifetimes") && error.contains("order")),
+            "{errors:#?}"
+        );
+    }
+
     /// HIR normalises a reference receiver on an enum to a by-value `SelfType::Enum`, so the
     /// reference-ness never reaches codegen: the generated consumer takes the enum by value
     /// while the provider's ABI shim still passes the pointer the source declared. A safe

@@ -5,8 +5,8 @@ use std::cell::Cell;
 use std::collections::HashSet;
 
 use diplomat_core::hir::{
-    self, IntType, MaybeOwn, OutType, PrimitiveType, ReturnType, ReturnableStructPath, Slice,
-    StructPathLike, SuccessType, Type, TypeContext, TypeDef,
+    self, IntType, MaybeOwn, MaybeStatic, OutType, PrimitiveType, ReturnType, ReturnableStructPath,
+    Slice, StructPathLike, SuccessType, Type, TypeContext, TypeDef,
 };
 
 use super::formatter::{
@@ -273,29 +273,38 @@ pub(super) fn validate_methods<'tcx>(
         // data lives.
         //
         // The block may legitimately *rename* the definition's lifetimes (`impl<'o> One<'o>`),
-        // so a name mismatch alone says nothing. What is never legitimate is declaring the same
-        // names in a different order, and that is what is refused here.
-        if let Some(definition) = definition_lifetimes {
-            let definition_order: Vec<String> = definition
-                .all_lifetimes()
-                .map(|lifetime| definition.fmt_lifetime(lifetime).into_owned())
-                .collect();
-            let mut declared_order: Vec<String> = method
+        // so names say nothing either way: `impl<'y, 'x> P<'x, 'y>` shares none with `P<'a, 'b>`
+        // and is the same reorder. The receiver's path records which of the block's lifetimes
+        // each parameter of the type receives, so that is compared with the declared order. A
+        // method without a receiver spells every type from its own HIR path and does not depend
+        // on the rendered impl header.
+        let applied: Option<Vec<MaybeStatic<hir::Lifetime>>> =
+            method
+                .param_self
+                .as_ref()
+                .and_then(|param| match &param.ty {
+                    hir::SelfType::Opaque(path) => Some(path.lifetimes.lifetimes().collect()),
+                    hir::SelfType::Struct(path) => Some(path.lifetimes().lifetimes().collect()),
+                    _ => None,
+                });
+        if let Some(applied) = applied {
+            let declared: Vec<_> = method
                 .lifetime_env
                 .all_lifetimes()
-                .map(|lifetime| method.lifetime_env.fmt_lifetime(lifetime).into_owned())
+                .take(type_lifetime_count)
+                .map(MaybeStatic::NonStatic)
                 .collect();
-            declared_order.truncate(definition_order.len());
-            let mut sorted_declared = declared_order.clone();
-            let mut sorted_definition = definition_order.clone();
-            sorted_declared.sort();
-            sorted_definition.sort();
-            if declared_order != definition_order && sorted_declared == sorted_definition {
+            if applied != declared {
                 reporter.reject(format!(
-                    "[Rust backend] the impl declares the type's lifetimes in a different order than the type does; declare them as <{}> so the generated impl applies them to the right parameters",
-                    definition_order
+                    "[Rust backend] the impl declares its lifetimes in a different order than it applies them to the type; declare them as <{}> so the generated impl applies them to the right parameters",
+                    applied
                         .iter()
-                        .map(|name| format!("'{name}"))
+                        .map(|lifetime| match lifetime {
+                            MaybeStatic::Static => "'static".to_string(),
+                            MaybeStatic::NonStatic(lifetime) => {
+                                format!("'{}", method.lifetime_env.fmt_lifetime(lifetime))
+                            }
+                        })
                         .collect::<Vec<_>>()
                         .join(", ")
                 ));
