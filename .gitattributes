@@ -15,3 +15,8 @@ feature_tests/dotnet/Generated/** linguist-generated=true
 feature_tests/js/api/** linguist-generated=true
 feature_tests/kotlin/somelib/** linguist-generated=true
 feature_tests/nanobind/src/** linguist-generated=true
+
+# Askama drops a template's final "\n" but not a "\r" before it, so a CRLF checkout
+# (core.autocrlf=true, the Git for Windows default) leaves a bare CR at the end of
+# every rendered file, and the generated Cargo.toml then fails to parse.
+tool/templates/rust/** text eol=lf
