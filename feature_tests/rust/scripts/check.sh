@@ -257,7 +257,6 @@ cargo fmt --manifest-path "$fixture_dir/Cargo.toml" --all --check
 cargo clippy --manifest-path "$fixture_dir/Cargo.toml" --workspace --all-targets -- -D warnings
 
 echo "== prove symbols are provider-defined and consumer-imported =="
-command -v nm >/dev/null 2>&1 || fail "nm is required"
 command -v python3 >/dev/null 2>&1 || fail "python3 is required to locate the consumer test executable"
 
 consumer_bin=$(
@@ -276,12 +275,47 @@ for line in sys.stdin:
 )
 [ -n "$consumer_bin" ] && [ -f "$consumer_bin" ] || fail "consumer test executable not found"
 
-nm "$provider_lib" >"$target_dir/provider-symbols.txt"
-nm -u "$consumer_bin" >"$target_dir/consumer-undefined-symbols.txt" 2>/dev/null || true
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        # PE has no `nm`; `dumpbin` ships with the MSVC build tools, and vswhere finds it.
+        vswhere="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
+        [ -x "$vswhere" ] || fail "vswhere is required on Windows to find dumpbin"
+        dumpbin=$("$vswhere" -latest -products '*' \
+            -find 'VC/Tools/MSVC/**/bin/Hostx64/x64/dumpbin.exe' | head -n 1 | tr -d '\r')
+        [ -n "$dumpbin" ] || fail "dumpbin not found; install the MSVC build tools"
+        dumpbin=$(cygpath -u "$dumpbin")
+        # `-` options rather than `/`: MSYS rewrites an argument with a leading `/` into a path.
+        "$dumpbin" -NOLOGO -EXPORTS "$provider_lib" >"$target_dir/provider-symbols.txt"
+        "$dumpbin" -NOLOGO -IMPORTS "$consumer_bin" | tr -d '\r' >"$target_dir/consumer-imports.txt"
+        # The import table lists each symbol under the DLL the linker bound it to, and PE
+        # has no symbol interposition, so keep only the provider DLL's block: a symbol
+        # listed there is both imported and bound to the provider.
+        awk -v dll="${provider_name}.dll" '
+            /^  [^ ]/ { current = "" }
+            /^    [^ ]/ { current = tolower($1) }
+            current == tolower(dll) { print }
+        ' "$target_dir/consumer-imports.txt" >"$target_dir/consumer-undefined-symbols.txt"
+        ;;
+    *)
+        command -v nm >/dev/null 2>&1 || fail "nm is required"
+        nm "$provider_lib" >"$target_dir/provider-symbols.txt"
+        nm -u "$consumer_bin" >"$target_dir/consumer-undefined-symbols.txt" 2>/dev/null || true
+        ;;
+esac
 grep "$probe_ctor" "$target_dir/provider-symbols.txt" >/dev/null || fail "provider does not define $probe_ctor"
 grep "$probe_dtor" "$target_dir/provider-symbols.txt" >/dev/null || fail "provider does not define $probe_dtor"
 grep "$probe_ctor" "$target_dir/consumer-undefined-symbols.txt" >/dev/null || fail "consumer does not import $probe_ctor"
 grep "$probe_dtor" "$target_dir/consumer-undefined-symbols.txt" >/dev/null || fail "consumer does not import $probe_dtor"
+# Whether the consumer executable defines a symbol itself. On Windows a reference the
+# linker resolved locally gets no import entry, so the import check above already rules
+# this out, and a linked executable keeps no symbol table to ask.
+consumer_defines() {
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*) return 1 ;;
+    esac
+    nm "$consumer_bin" | grep -E "[[:space:]][Tt][[:space:]].*$1" >/dev/null
+}
+
 # The provider's own runtime symbols. The consumer must import them, and must not
 # define them: a consumer that defines one of these has linked provider machinery and
 # will free, or write into, memory the provider allocated with its own allocator.
@@ -291,11 +325,11 @@ for symbol in diplomat_owned_slice_u8_destroy diplomat_buffer_write_create \
         || fail "provider does not define $symbol"
     grep "$symbol" "$target_dir/consumer-undefined-symbols.txt" >/dev/null \
         || fail "consumer does not import $symbol from the provider"
-    if nm "$consumer_bin" | grep -E "[[:space:]][Tt][[:space:]].*$symbol" >/dev/null; then
+    if consumer_defines "$symbol"; then
         fail "consumer defines $symbol, which belongs to the provider"
     fi
 done
-if nm "$consumer_bin" | grep -E "[[:space:]][Tt][[:space:]].*$probe_ctor" >/dev/null; then
+if consumer_defines "$probe_ctor"; then
     fail "consumer defines provider constructor/destructor symbols"
 fi
 
@@ -331,6 +365,10 @@ case "$(uname -s)" in
     Linux)
         command -v readelf >/dev/null 2>&1 || fail "readelf is required on Linux"
         readelf -d "$consumer_bin" >"$target_dir/consumer-dependencies.txt"
+        ;;
+    MINGW*|MSYS*|CYGWIN*)
+        # The import table names every DLL the executable loads.
+        cp "$target_dir/consumer-imports.txt" "$target_dir/consumer-dependencies.txt"
         ;;
 esac
 grep "$provider_name" "$target_dir/consumer-dependencies.txt" >/dev/null || fail "provider is not a recorded dynamic dependency"
