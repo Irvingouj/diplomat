@@ -231,6 +231,19 @@ echo "== prove the transcription still matches the runtime the provider is built
 # library search path is set.
 
 native_dir="$target_dir/debug"
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        # The provider crate is also a staticlib, and on MSVC that is `<name>.lib`: exactly
+        # what `#[link(name = "<name>")]` resolves to, so the consumer would link a static
+        # copy of the provider. The cdylib's import library is `<name>.dll.lib`. Stage it
+        # alone, under the name the linker asks for, and find the DLL through PATH.
+        native_dir="$target_dir/import-lib"
+        rm -rf "$native_dir"
+        mkdir -p "$native_dir"
+        cp "$target_dir/debug/${provider_name}.dll.lib" "$native_dir/${provider_name}.lib"
+        export PATH="$target_dir/debug:$PATH"
+        ;;
+esac
 export DIPLOMAT_RUST_NATIVE_LIB_DIR="$native_dir"
 export DYLD_LIBRARY_PATH="$native_dir${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
 export LD_LIBRARY_PATH="$native_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
