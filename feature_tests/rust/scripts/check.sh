@@ -117,7 +117,7 @@ python3 - "$repo_dir" "$corpus_dir" <<'AUDIT' || fail "capability claims are not
 import re, sys, pathlib
 
 repo, corpus = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-body = pathlib.Path(repo, "tool/src/rust/mod.rs").read_text() \
+body = pathlib.Path(repo, "tool/src/rust/mod.rs").read_text(encoding="utf-8") \
     .split("pub(crate) fn attr_support")[1].split("\n}\n")[0]
 CLAIMED = sorted(set(re.findall(r"support\.(\w+)\s*=\s*true", body)))
 
@@ -164,7 +164,7 @@ def included(block, flags):
 
 items = []
 for path in sorted(corpus.rglob("*.rs")):
-    lines = path.read_text().split("\n")
+    lines = path.read_text(encoding="utf-8").split("\n")
     for i, line in enumerate(lines):
         m = re.match(r"^\s*(?:pub(?:\([^)]*\))?\s+)?(fn|struct|enum)\s+(\w+)", line)
         if not m:
