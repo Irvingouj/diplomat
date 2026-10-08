@@ -388,6 +388,12 @@ extern "C" {
     pub(super) fn Slot_destroy(this: *mut Slot);
     pub(super) fn Slot_new(initial: DiplomatSlice<u8>) -> *mut Slot;
     pub(super) fn Slot_store(this: *mut Slot, value: DiplomatSlice<u8>);
+    pub(super) fn Slot_store_into(
+        slot: *mut Slot,
+        value: DiplomatSlice<u8>,
+        long: DiplomatSlice<u8>,
+        short: DiplomatSlice<u8>,
+    );
     pub(super) fn Slot_get<'a>(this: *const Slot) -> DiplomatSlice<'a, u8>;
     pub(super) fn Two_destroy(this: *mut Two);
     pub(super) fn TypeLifetimeOpaque_destroy(this: *mut TypeLifetimeOpaque);

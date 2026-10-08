@@ -84,6 +84,20 @@ pub mod ffi {
             self.0 = value;
         }
 
+        /// `'x` ties `value` to another slot. It has no bound and the return does
+        /// not use it, but it still outlives the call, so it cannot be elided.
+        /// `'long: 'short` is unrelated: it only makes the method declare its
+        /// lifetimes, which is the shape that used to compile with `value` elided.
+        pub fn store_into<'x, 'long: 'short, 'short>(
+            slot: &mut Slot<'x>,
+            value: &'x DiplomatStr,
+            long: &'long DiplomatStr,
+            short: &'short DiplomatStr,
+        ) {
+            let _ = (long, short);
+            slot.0 = value;
+        }
+
         pub fn get(&self) -> &'a DiplomatStr {
             self.0
         }

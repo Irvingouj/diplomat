@@ -133,6 +133,26 @@ impl<'a> Slot<'a> {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         unsafe { ffi::Slot_store(self.inner.as_ptr(), ffi::DiplomatSlice::from(value)) };
     }
+    /// `'x` ties `value` to another slot. It has no bound and the return does
+    /// not use it, but it still outlives the call, so it cannot be elided.
+    /// `'long: 'short` is unrelated: it only makes the method declare its
+    /// lifetimes, which is the shape that used to compile with `value` elided.
+    pub fn store_into<'x, 'long: 'short, 'short, 'anon_0>(
+        slot: &mut impl crate::SlotMutArg<'x>,
+        value: &'x [u8],
+        long: &'long [u8],
+        short: &'short [u8],
+    ) {
+        // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
+        unsafe {
+            ffi::Slot_store_into(
+                crate::private::SlotMutSealed::__as_mut_ptr(slot),
+                ffi::DiplomatSlice::from(value),
+                ffi::DiplomatSlice::from(long),
+                ffi::DiplomatSlice::from(short),
+            )
+        };
+    }
     pub fn get<'anon_0>(&'anon_0 self) -> &'a [u8] {
         // SAFETY: generated arguments preserve the ownership, mutability, and lifetime constraints encoded by HIR.
         let result = unsafe { ffi::Slot_get(self.inner.as_ptr() as *const _) };

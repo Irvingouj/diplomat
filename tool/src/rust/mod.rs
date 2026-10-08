@@ -1374,6 +1374,40 @@ mod tests {
         );
     }
 
+    /// A lifetime that ties two inputs together is not a call-local borrow, even when it
+    /// has no bound and the return type does not use it. `store_into` hands `value` to a
+    /// `Slot<'x>` that outlives the call, and `register` hands it the receiver; eliding
+    /// either borrow lets a caller pick `Slot<'static>` and store a temporary.
+    #[test]
+    fn lifetime_shared_with_a_parameter_type_argument_is_not_elided() {
+        let (files, errors) = generate(quote! {
+            #[diplomat::bridge]
+            mod ffi {
+                use diplomat_runtime::DiplomatStr;
+                #[diplomat::opaque_mut]
+                pub struct Slot<'a>(&'a DiplomatStr);
+                #[diplomat::opaque]
+                pub struct Holder;
+                impl Holder {
+                    pub fn store_into<'x>(slot: &mut Slot<'x>, value: &'x DiplomatStr) { unimplemented!() }
+                    pub fn register<'s>(&'s self, slot: &mut Slot<'s>) { unimplemented!() }
+                }
+            }
+        });
+        assert!(errors.is_empty(), "{errors:#?}");
+        let safe = &all_rust_sources(&files);
+        assert!(safe.contains("pub fn store_into<'x"), "{safe}");
+        assert!(
+            safe.contains("slot: &mut impl crate::SlotMutArg<'x>, value: &'x [u8])"),
+            "{safe}"
+        );
+        assert!(safe.contains("pub fn register<'s"), "{safe}");
+        assert!(
+            safe.contains("(&'s self, slot: &mut impl crate::SlotMutArg<'s>)"),
+            "{safe}"
+        );
+    }
+
     #[test]
     fn float_structs_do_not_derive_eq() {
         let (files, errors) = generate(quote! {

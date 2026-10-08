@@ -123,3 +123,5 @@ compile_fail_case!(opaque_type_lifetime_mismatch => ["E0277", "E0597"]);
 compile_fail_case!(lifetime_store_short_as_long => "E0515");
 // A slice stored into `Slot<'a>` has to live for `'a`.
 compile_fail_case!(slot_store_outlives => ["E0597", "E0521"]);
+// The same, when the slice reaches the slot through a shared method lifetime.
+compile_fail_case!(slot_store_into_outlives => ["E0597", "E0521"]);

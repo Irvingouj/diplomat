@@ -130,8 +130,8 @@ pub(super) fn opaque_lifetime_phantom(opaque: &hir::OpaqueDef) -> String {
 }
 
 /// Whether a method must declare its method-level lifetimes: the output uses
-/// one, a struct parameter names one, or an input lifetime carries a bound
-/// that is not already in scope as a type-level lifetime.
+/// one, a struct parameter names one, or an input lifetime that is not already
+/// in scope as a type-level lifetime outlives the call.
 pub(super) fn method_declares_lifetimes(
     method: &hir::Method,
     type_lifetimes: usize,
@@ -150,8 +150,7 @@ pub(super) fn method_declares_lifetimes(
         return true;
     }
     input_lifetimes(method).any(|lifetime| {
-        !is_type_lifetime(lifetime, method, type_lifetimes)
-            && lifetime_carries_a_bound(lifetime, method)
+        !is_type_lifetime(lifetime, method, type_lifetimes) && !is_call_local(lifetime, method)
     })
 }
 
@@ -197,6 +196,9 @@ fn collect_input_lifetimes(ty: &Type<hir::InputOnly>, found: &mut Vec<hir::Lifet
             }
             found.extend(path.lifetimes.lifetimes().filter_map(nonstatic));
         }
+        Type::Struct(path) => {
+            found.extend(path.lifetimes().lifetimes().filter_map(nonstatic));
+        }
         Type::DiplomatOption(inner) => collect_input_lifetimes(inner.as_ref(), found),
         _ => {}
     }
@@ -209,15 +211,25 @@ fn nonstatic(lifetime: MaybeStatic<hir::Lifetime>) -> Option<hir::Lifetime> {
     }
 }
 
-/// `'a` on `Slot<'a>` , or any lifetime with an outlives bound. A fresh
-/// call-only borrow has neither, and eliding it is the same constraint.
-fn lifetime_carries_a_bound(lifetime: hir::Lifetime, method: &hir::Method) -> bool {
+/// Whether a lifetime names a fresh borrow that ends with the call, so eliding it
+/// is the same constraint.
+///
+/// A lifetime with an outlives bound is not: it relates to another lifetime. Nor is
+/// one that appears in more than one input position: in
+/// `store_into<'x>(slot: &mut Slot<'x>, value: &'x [u8])` it is what ties `value` to
+/// the slot, and eliding it lets a caller store a temporary in a `Slot<'static>`.
+fn is_call_local(lifetime: hir::Lifetime, method: &hir::Method) -> bool {
     let env = &method.lifetime_env;
-    env.all_shorter_lifetimes(lifetime)
+    let bounded = env
+        .all_shorter_lifetimes(lifetime)
         .any(|other| other != lifetime)
         || env
             .all_longer_lifetimes(lifetime)
-            .any(|other| other != lifetime)
+            .any(|other| other != lifetime);
+    let occurrences = input_lifetimes(method)
+        .filter(|other| *other == lifetime)
+        .count();
+    !bounded && occurrences == 1
 }
 
 pub(super) fn method_generics(method: &hir::Method, skip: usize, tcx: &TypeContext) -> String {
@@ -243,9 +255,9 @@ pub(super) fn lifetime_name(lifetime: MaybeStatic<hir::Lifetime>, method: &hir::
 /// The lifetime as it appears before a reference: `"'a "` or `"'static "`.
 ///
 /// A lifetime is spelled when the return value uses one, when it is one of the
-/// enclosing type's lifetimes, or when it has an outlives bound. Eliding
-/// `Slot<'a>::store`'s `&'a [u8]` to `&[u8]` would accept a borrow that does
-/// not live for `'a`. A fresh borrow that dies at the end of the call stays
+/// enclosing type's lifetimes, or when it outlives the call (see `is_call_local`).
+/// Eliding `Slot<'a>::store`'s `&'a [u8]` to `&[u8]` would accept a borrow that
+/// does not live for `'a`. A fresh borrow that dies at the end of the call stays
 /// elided.
 pub(super) fn lifetime_prefix(
     lifetime: MaybeStatic<hir::Lifetime>,
@@ -257,7 +269,7 @@ pub(super) fn lifetime_prefix(
         MaybeStatic::NonStatic(lt)
             if !method.output.used_method_lifetimes().is_empty()
                 || is_type_lifetime(lt, method, type_lifetimes)
-                || lifetime_carries_a_bound(lt, method) =>
+                || !is_call_local(lt, method) =>
         {
             format!("'{} ", method.lifetime_env.fmt_lifetime(lt))
         }
